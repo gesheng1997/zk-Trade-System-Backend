@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import * as ed from '@noble/ed25519';
 import { encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import * as jsrsasign from 'jsrsasign';
 

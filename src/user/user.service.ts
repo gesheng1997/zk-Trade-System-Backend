@@ -1,5 +1,4 @@
 import { HttpException, HttpStatus, Injectable, UnauthorizedException, UseGuards } from '@nestjs/common';
-import * as ed from '@noble/ed25519';
 import { decodeUTF8, encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import { buffer2bits, chunkBigInt } from 'src/utils/mathUtils';
 import { sha256 } from 'crypto-js';
@@ -34,6 +33,7 @@ export class UserService {
 
     //创建普通用户账号的方法
     async createUser(userRegisterDto: UserRegisterDto):Promise<number> {
+        const ed = await import('@noble/ed25519');
         const { username, password, publicKey, signature } = userRegisterDto;
 
         //查询数据库，如果当前欲注册的用户已经注册过了，
@@ -84,6 +84,7 @@ export class UserService {
     }
 
     async createOrgUser(orgRegisterDto: OrgRegisterDto):Promise<number> {
+        const ed = await import('@noble/ed25519');
         const { username, password, publicKey, signature, pemCert, pemSignature } = orgRegisterDto;
 
         if (
@@ -142,6 +143,7 @@ export class UserService {
     }
 
     async createAdminUser(adminRegisterDto: AdminRegisterDto):Promise<number> {
+        const ed = await import('@noble/ed25519');
         const { username, password, publicKey, signature, token } = adminRegisterDto;
 
         if (
