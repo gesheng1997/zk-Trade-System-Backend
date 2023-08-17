@@ -10,7 +10,7 @@ import {
 } from './dto/user-register.dto';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 import { CheckUserLoginDto } from './dto/check-user-login.dto';
-import { createAdminAccount, createNormalAccount, createOrgAccount } from 'src/utils/chaincodeAccountMethods';
+import { createAdminAccount, createNormalAccount, createOrgAccount, initLedger } from 'src/utils/chaincodeAccountMethods';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -51,7 +51,22 @@ export class UserService {
         if (isValid) {
             //获取当前数据库中最大id值，将其+1作为写入链上的id
             //为什么要这样做？因为创建链上账号逻辑上必须在写入后端mysql之前！否则反过来若链上账号创建不成功可能mysql又要删除这个刚插入的数据
-            const newid = (await this.user.maximum('id')) + 1;
+            const countId = await this.user.maximum('id');
+            let newid:number;
+
+            //若当前库中没有记录，说明处于系统初始化阶段，调用Initledger
+            if(!countId){
+                try {
+                    initLedger();
+                } catch (error) {
+                    console.log(error);
+                    throw new HttpException(
+                        'init fail',
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                    );
+                }
+                newid = 1;
+            }else newid = countId + 1;
 
             //访问gateway代码，创建链上账号
             try {
@@ -115,7 +130,22 @@ export class UserService {
         //验证ed25519签名
         const isValid = await ed.verifyAsync(signature, password, publicKey);
         if (isValid) {
-            const newid = (await this.user.maximum('id')) + 1;
+            const countId = await this.user.maximum('id');
+            let newid:number;
+
+            if(!countId){
+                try {
+                    initLedger();
+                } catch (error) {
+                    console.log(error);
+                    throw new HttpException(
+                        'init fail',
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                    );
+                }
+                newid = 1;
+            }else newid = countId + 1;
+
             try {
                 createOrgAccount(newid, publicKey, pemCert);
             } catch {
@@ -157,9 +187,21 @@ export class UserService {
         //对用户签名进行验证，保证用户具有公钥对应的私钥
         const isValid = await ed.verifyAsync(signature, password, publicKey);
         if (isValid) {
-            //获取当前数据库中最大id值，将其+1作为写入链上的id
-            //为什么要这样做？因为创建链上账号逻辑上必须在写入后端mysql之前！否则反过来若链上账号创建不成功可能mysql又要删除这个刚插入的数据
-            const newid = (await this.user.maximum('id')) + 1;
+            const countId = await this.user.maximum('id');
+            let newid:number;
+
+            if(!countId){
+                try {
+                    initLedger();
+                } catch (error) {
+                    console.log(error);
+                    throw new HttpException(
+                        'init fail',
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                    );
+                }
+                newid = 1;
+            }else newid = countId + 1;
 
             //访问gateway代码，创建链上账号
             try {
