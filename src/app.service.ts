@@ -1,27 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { encodeBase64, decodeBase64, decodeUTF8 } from 'tweetnacl-util';
-import * as jsrsasign from 'jsrsasign';
 import encodeUTF8 from './utils/encodeUTF8';
 import SALT from './constant/salt';
 import { sha256 } from '@hyperledger/fabric-gateway/dist/hash/hashes';
+import getOrgPem from './utils/getOrgPem';
+import path from 'path';
+import fs from 'fs';
+import { KEYUTIL, KJUR, X509 } from 'jsrsasign';
 
 @Injectable()
 export class AppService {
   async getHello(): Promise<string> {
-    // const ed = await import('@noble/ed25519');
+    const ed = await import('@noble/ed25519');
 
-    // const privateKey = Buffer.from(ed.utils.randomPrivateKey()).toString('hex');
-    // console.log('private:',privateKey);
-    // const publicKeyA = await ed.getPublicKeyAsync(privateKey);
-    // const publicKey = Buffer.from(publicKeyA).toString('hex');
-    // console.log('public:',publicKey);
-    // const msgStr = '123456';
-    // const msg = Buffer.from(decodeUTF8(msgStr)).toString('hex');
-    // console.log('msg:',msg);
-    // const signatureA = await ed.signAsync(msg,privateKey);
-    // const signature = Buffer.from(signatureA).toString('hex');
-    // console.log('signature:',signature);
+    const privateKey = Buffer.from(ed.utils.randomPrivateKey()).toString('hex');
+    console.log('private:',privateKey);
+    const publicKeyA = await ed.getPublicKeyAsync(privateKey);
+    const publicKey = Buffer.from(publicKeyA).toString('hex');
+    console.log('public:',publicKey);
+    const msgStr = 'WoAi===WenJun';
+    const msg = Buffer.from(decodeUTF8(msgStr)).toString('hex');
+    console.log('msg:',msg);
+    const signatureA = await ed.signAsync(msg,privateKey);
+    const signature = Buffer.from(signatureA).toString('hex');
+    console.log('signature:',signature);
     // const isValid = await ed.verifyAsync(signature,msg,publicKey);
+
+    const pemCert = getOrgPem('org3');
+    console.log('pemCert:',pemCert);
+
+    const ecPrivateKeyBuffer = fs.readFileSync(path.resolve('~', 'transaction-network', 'organizations', 'peerOrganizations', `org3.example.com`, 'ca', `priv_sk`));
+    const ecprivateKey = ecPrivateKeyBuffer.toString('hex');
+    console.log('ECDSAPrivateKey:',ecprivateKey);
+
+    const ECDSAPublicKey = KEYUTIL.getKey(pemCert);
+    console.log('ECDSAPublicKey:',ECDSAPublicKey);
+
+    // const ECDSAverify = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
+    // ECDSAverify.init(ECDSApublicKey);
+    // ECDSAverify.updateString(msg);
+    // const isValid = ECDSAverify.verify(signature);
 
     // console.log('private:',privateKey);
     // console.log('public:',publicKey);
@@ -29,13 +47,13 @@ export class AppService {
     // console.log('signature:',signature);
     // console.log('isValid:',isValid);
 
-    const password = '123456';
-    const passwordSalt = password + SALT;
-    const passwordSaltA = decodeUTF8(passwordSalt);
-    const passwordHashA = sha256(passwordSaltA);
-    const passwordHash = encodeBase64(passwordHashA);
+    // const password = '123456';
+    // const passwordSalt = password + SALT;
+    // const passwordSaltA = decodeUTF8(passwordSalt);
+    // const passwordHashA = sha256(passwordSaltA);
+    // const passwordHash = encodeBase64(passwordHashA);
 
-    console.log(passwordHash);
+    // console.log(passwordHash);
     // testX509();
     return 'Hello World!';
   }
@@ -53,8 +71,8 @@ const verifyCertificateChain = (certificates) => {
     let issuerIndex = i + 1;
     // If i == certificates.length - 1, self signed root ca
     if (i == certificates.length - 1) issuerIndex = i;
-    const issuerPubKey = jsrsasign.KEYUTIL.getKey(certificates[issuerIndex]);
-    const certificate = new jsrsasign.X509(certificates[i]);
+    const issuerPubKey = KEYUTIL.getKey(certificates[issuerIndex]);
+    const certificate = new X509(certificates[i]);
     valid = valid && certificate.verifySignature(issuerPubKey);
   }
 

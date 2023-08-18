@@ -32,6 +32,7 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly user: Repository<User>,
+    @InjectRepository(Organization)
     private readonly organization: Repository<Organization>,
     private jwtService:JwtService
   ) {}

@@ -17,6 +17,8 @@ lerna-debug.log*
 # Tests
 /coverage
 /.nyc_output
+/ca.org3.example.com-cert.pem
+/priv_sk
 
 # IDEs and editors
 /.idea
