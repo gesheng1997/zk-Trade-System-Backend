@@ -23,6 +23,7 @@ import { JwtService } from '@nestjs/jwt';
 import { sha256 } from '@hyperledger/fabric-gateway/dist/hash/hashes';
 import { AccountDto } from './dto/account.dto';
 import userType from 'src/constant/userType';
+import { Organization } from './entities/organization.entity';
 
 const TOKEN = 'ZHUZHUXIHUANNIWENJUN';
 
@@ -31,6 +32,7 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly user: Repository<User>,
+    private readonly organization: Repository<Organization>,
     private jwtService:JwtService
   ) {}
 
@@ -157,7 +159,7 @@ export class UserService {
             const passwordSalt = decodeUTF8(password + SALT);
             const passwordHash = encodeBase64(sha256(passwordSalt));
 
-            const resultEntity = await this.user.save({
+            const resultUser = await this.user.save({
                 username,
                 password: passwordHash,
                 publicKey,
@@ -165,8 +167,18 @@ export class UserService {
                 type: 0,
                 alive: 1,
             });
-            console.log(resultEntity);
-            return resultEntity.id;
+
+            //对于组织，单独拥有组织表并写入
+            const resultOrg = await this.organization.save({
+                userId:resultUser.id,
+                orgname:username,
+                pemCert:pemCert,
+                password:passwordHash,
+                publicKey:publicKey,
+            });
+            console.log(resultUser);
+            console.log(resultOrg);
+            return resultUser.id;
         } else {
             throw new HttpException('verify fail', HttpStatus.BAD_REQUEST);
         }
