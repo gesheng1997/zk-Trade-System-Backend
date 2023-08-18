@@ -11,7 +11,7 @@ import { AuthModule } from './authGuard/auth.module';
     TypeOrmModule.forRoot({
       type: 'mysql',
       username: 'root',
-      password: '123456LiZeyang',
+      password: '1234567LiZeyang',
       host: 'localhost',
       port: 3306,
       database: 'zk_transactions',

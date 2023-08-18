@@ -1,7 +1,6 @@
 import { HttpException, HttpStatus, Injectable, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { decodeUTF8, encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import { buffer2bits, chunkBigInt } from 'src/utils/mathUtils';
-import { sha256 } from 'crypto-js';
 
 import {
   AdminRegisterDto,
@@ -10,7 +9,7 @@ import {
 } from './dto/user-register.dto';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 import { CheckUserLoginDto } from './dto/check-user-login.dto';
-import { createAdminAccount, createNormalAccount, createOrgAccount, initLedger } from 'src/utils/chaincodeAccountMethods';
+import { createAccount, createOrgAccount, initLedger, readAllAccounts } from 'src/utils/chaincodeAccountMethods';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -21,7 +20,11 @@ import verifyX509Cert from 'src/utils/verifyX509Cert';
 import verifyExtraECDSASig from 'src/utils/verifyExtraECDSASig';
 import { UserInfoDto } from './dto/user-info.dto';
 import { JwtService } from '@nestjs/jwt';
+import { sha256 } from '@hyperledger/fabric-gateway/dist/hash/hashes';
+import { AccountDto } from './dto/account.dto';
+import userType from 'src/constant/userType';
 
+const TOKEN = 'ZHUZHUXIHUANNIWENJUN';
 
 @Injectable()
 export class UserService {
@@ -38,14 +41,13 @@ export class UserService {
 
         //查询数据库，如果当前欲注册的用户已经注册过了，
         //那么报错，这里要小心dos攻击，前端应该有失败注册次数检测机制
-        if (
-            this.user.exist({
-                select: ['username'],
-                where: { username, },
-            })
-        ) {
+        const exist = await this.user.exist({
+            select: ['username'],
+            where: { username, },
+        });
+        if (exist) 
             throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
-        }
+
         //对用户签名进行验证，保证用户具有公钥对应的私钥
         const isValid = await ed.verifyAsync(signature, password, publicKey);
         if (isValid) {
@@ -70,7 +72,7 @@ export class UserService {
 
             //访问gateway代码，创建链上账号
             try {
-                createNormalAccount(newid, publicKey);
+                createAccount(newid, userType.NORMAL, publicKey);
             } catch(error) {
                 console.log(error);
                 throw new HttpException(
@@ -80,8 +82,8 @@ export class UserService {
             }
 
             //创建链上账号没有报错的情况下，写入数据库
-            const passwordSalt = password + SALT;
-            const passwordHash = sha256(passwordSalt);
+            const passwordSalt = decodeUTF8(password + SALT);
+            const passwordHash = encodeBase64(sha256(passwordSalt));
 
             const resultEntity = await this.user.save({
                 username,
@@ -102,14 +104,12 @@ export class UserService {
         const ed = await import('@noble/ed25519');
         const { username, password, publicKey, signature, pemCert, pemSignature } = orgRegisterDto;
 
-        if (
-            this.user.exist({
-                select: ['username'],
-                where: { username, },
-            })
-        ) {        
+        const exist = await this.user.exist({
+            select: ['username'],
+            where: { username, },
+        });
+        if (exist) 
             throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
-        }
 
         try {
             //检查企业注册提供的pem证书和已加入联盟的同名组织的pem是否一致，此处pem格式为带开头结尾的BASE64字符串
@@ -154,8 +154,8 @@ export class UserService {
                     HttpStatus.INTERNAL_SERVER_ERROR,
                 );
             }
-            const passwordSalt = password + SALT;
-            const passwordHash = sha256(passwordSalt);
+            const passwordSalt = decodeUTF8(password + SALT);
+            const passwordHash = encodeBase64(sha256(passwordSalt));
 
             const resultEntity = await this.user.save({
                 username,
@@ -176,23 +176,28 @@ export class UserService {
         const ed = await import('@noble/ed25519');
         const { username, password, publicKey, signature, token } = adminRegisterDto;
 
-        if (
-            this.user.exist({
-                select: ['username'],
-                where: { username, },
-            })
-        ) {
+        console.log(username,password,publicKey,signature,token);
+
+        const exist = await this.user.exist({
+            select: ['username'],
+            where: { username, },
+        });
+        if (exist) 
             throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
-        }
+
+        //验证管理员注册所必需的token
+        if(token !== TOKEN) throw new HttpException('wrong token',HttpStatus.BAD_REQUEST);
+
         //对用户签名进行验证，保证用户具有公钥对应的私钥
         const isValid = await ed.verifyAsync(signature, password, publicKey);
+
         if (isValid) {
             const countId = await this.user.maximum('id');
             let newid:number;
 
             if(!countId){
                 try {
-                    initLedger();
+                    await initLedger();
                 } catch (error) {
                     console.log(error);
                     throw new HttpException(
@@ -203,11 +208,11 @@ export class UserService {
                 newid = 1;
             }else newid = countId + 1;
 
-            //访问gateway代码，创建链上账号
+            //访问gateway代码，创建链上账号 
             try {
-                createAdminAccount(newid, publicKey, token);
+                await createAccount(newid, userType.ADMIN, publicKey);
             } catch(error) {
-                console.log(error);
+                console.log('@',error);
                 throw new HttpException(
                     'create fail',
                     HttpStatus.INTERNAL_SERVER_ERROR,
@@ -215,8 +220,9 @@ export class UserService {
             }
 
             //创建链上账号没有报错的情况下，写入数据库
-            const passwordSalt = password + SALT;
-            const passwordHash = sha256(passwordSalt);
+            //此处的操作是使用fabric-gateway包提供的sha256函数对加盐密码进行哈希并转为base64存放，该函数要求输入一个Uint8Array
+            const passwordSalt = decodeUTF8(password + SALT);
+            const passwordHash = encodeBase64(sha256(passwordSalt));
 
             const resultEntity = await this.user.save({
                 username,
@@ -259,8 +265,8 @@ export class UserService {
         if(!findRes) return null;
         
         //验证密码
-        const passwordSalt = password + SALT;
-        const passwordHash = sha256(passwordSalt);
+        const passwordSalt = decodeUTF8(password + SALT);
+        const passwordHash = encodeBase64(sha256(passwordSalt));
         if(passwordHash != findRes.password){
             throw new UnauthorizedException();
         }else{
@@ -326,5 +332,16 @@ export class UserService {
 
         if(success) return true;
         else return false;
+    }
+
+    async getAllAccounts():Promise<Array<AccountDto>>{
+        try {
+            const resultJson = await readAllAccounts();
+            const Accounts:Array<AccountDto> = JSON.parse(resultJson);
+
+            return Accounts;
+        } catch (error) {
+            throw new HttpException('qurey failed',HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

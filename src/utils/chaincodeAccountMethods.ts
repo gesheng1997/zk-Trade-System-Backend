@@ -11,7 +11,7 @@ const utf8Decoder = new TextDecoder();
 export const initLedger = async (): Promise<void>  => {
     const { client, gateway, contract } = await getConnection();
 
-    console.log('\n--> Submit Transaction: InitLedger, initialize test account in world state array');
+    console.log('\n--> Submit Transaction: InitLedger, initialize test account in world state array\n');
 
     await contract.submit('InitLedger');
 
@@ -21,17 +21,27 @@ export const initLedger = async (): Promise<void>  => {
 }
 
 //创建一个新普通账户
-export const createNormalAccount = async (id: number, publicKey:string): Promise<void> => {
+export const createAccount = async (id: number, type:userType, publicKey:string): Promise<void> => {
     const { client, gateway, contract } = await getConnection();
 
     console.log('\n--> Submit Transaction: CreateAsset, creates new normal account with id, publicKey and type');
 
-    await contract.submit(
-        'CreateAccount',
-        {
-            'arguments':[`${id}`,publicKey,userType.NORMAL.toString(), ''],
-        }
-    );
+    if(type === userType.NORMAL){
+        await contract.submit(
+            'CreateAccount',
+            {
+                'arguments':[`${id}`,publicKey,`${userType.NORMAL}`, ''],
+            }
+        );
+    }
+    if(type === userType.ADMIN){
+        await contract.submit(
+            'CreateAccount',
+            {
+                'arguments':[`${id}`,publicKey,`${userType.ADMIN}`, ''],
+            }
+        );
+    }
 
     console.log('*** Create Normal Account successfully');
 
@@ -47,7 +57,7 @@ export const createOrgAccount = async (id: number, publicKey:string, pemCert:str
     await contract.submit(
         'CreateAccount',
         {
-            'arguments':[`${id}`,publicKey,userType.ORGANIZATION.toString(),pemCert],
+            'arguments':[`${id}`,publicKey,`${userType.ORGANIZATION}`, pemCert],
         }
     );
 
@@ -57,22 +67,22 @@ export const createOrgAccount = async (id: number, publicKey:string, pemCert:str
 }
 
 //创建一个新管理员账户
-export const createAdminAccount = async (id: number, publicKey:string, token:string): Promise<void> => {
-    const { client, gateway, contract } = await getConnection();
+// export const createAdminAccount = async (id: number, publicKey:string): Promise<void> => {
+//     const { client, gateway, contract } = await getConnection();
 
-    console.log('\n--> Submit Transaction: CreateAsset, creates new normal account with id, publicKey and type');
+//     console.log('\n--> Submit Transaction: CreateAsset, creates new normal account with id, publicKey and type');
 
-    await contract.submit(
-        'CreateAccount',
-        {
-            'arguments':[`${id}`,publicKey,userType.ADMIN.toString(),'',token],
-        }
-    );
+//     await contract.submit(
+//         'CreateAccount',
+//         {
+//             'arguments':[`${id}`,publicKey,`${userType.ADMIN}`,''],
+//         }
+//     );
 
-    console.log('*** Create Admin Account Successfully');
+//     console.log('*** Create Admin Account Successfully');
 
-    closeConnection(client,gateway);
-}
+//     closeConnection(client,gateway);
+// }
 
 //读取指定id账户的数据，返回Json字符串
 export const readAccount = async (id: number): Promise<string> => {

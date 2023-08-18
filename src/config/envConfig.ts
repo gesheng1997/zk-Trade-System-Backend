@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 const ORG_NAME = 'org1';
-const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve('~', 'transaction-network', 'organizations', 'peerOrganizations', `${ORG_NAME}.example.com`));
+const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve('/home', 'zionlee', 'transaction-network', 'organizations', 'peerOrganizations', `${ORG_NAME}.example.com`));
 
 const envConfig = {
     channelName : envOrDefault('CHANNEL_NAME', 'transactionchannel'),

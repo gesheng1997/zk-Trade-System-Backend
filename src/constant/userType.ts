@@ -1,7 +1,7 @@
-const userType = {
-    NORMAL:0,
-    ORGANIZATION:1,
-    ADMIN:2,
+enum userType {
+    NORMAL = 0,
+    ORGANIZATION,
+    ADMIN,
 }
 
 export default userType;
