@@ -24,6 +24,7 @@ import { sha256 } from '@hyperledger/fabric-gateway/dist/hash/hashes';
 import { AccountDto } from './dto/account.dto';
 import userType from 'src/constant/userType';
 import { Organization } from './entities/organization.entity';
+import encodeUTF8 from 'src/utils/encodeUTF8';
 
 const TOKEN = 'ZHUZHUXIHUANNIWENJUN';
 
@@ -105,26 +106,28 @@ export class UserService {
 
     async createOrgUser(orgRegisterDto: OrgRegisterDto):Promise<number> {
         const ed = await import('@noble/ed25519');
+        //输入的pemCert为base64字符串的形式，这是为了方便传输和对比
         const { username, password, publicKey, signature, pemCert, pemSignature } = orgRegisterDto;
 
-        const exist = await this.user.exist({
-            select: ['username'],
-            where: { username, },
+        const exist = await this.organization.exist({
+            select: ['orgname'],
+            where: { orgname:username, },
         });
         if (exist) 
             throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
 
         try {
             //检查企业注册提供的pem证书和已加入联盟的同名组织的pem是否一致，此处pem格式为带开头结尾的BASE64字符串
-            const pem = getOrgPem(username);
-            if(pem !== pemCert) throw new Error();
+            const pem = getOrgPem(username);//这里从链上文件中获取pem，返回格式为BASE64
+            if(pem !== pemCert) throw new Error();//对比输入和获取的pem，输入的pem也是BASE64
+            const pemCertUTF8 = encodeUTF8(decodeBase64(pemCert));//对比完后，再将base64格式的pem转为带begin end的一般格式，以适应后面的验证
 
             //验证pem证书
-            const validCert = verifyX509Cert(pemCert);
+            const validCert = verifyX509Cert(pemCertUTF8);
             if(!validCert) throw new Error();
 
             //验证ECDSA额外签名，证明注册人确实具有证书中的公钥对应的私钥
-            const validSig = verifyExtraECDSASig(pemCert,pemSignature,password);
+            const validSig = verifyExtraECDSASig(pemCertUTF8,pemSignature,password);
             if(!validSig) throw new Error();
         } catch (error) {
             throw new HttpException('Invalid pemCert',HttpStatus.BAD_REQUEST);
