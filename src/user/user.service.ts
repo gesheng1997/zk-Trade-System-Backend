@@ -9,7 +9,7 @@ import {
 } from './dto/user-register.dto';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 import { CheckUserLoginDto } from './dto/check-user-login.dto';
-import { createAccount, createOrgAccount, initLedger, readAllAccounts } from 'src/utils/chaincodeAccountMethods';
+import { createAccount, createOrgAccount, deleteAccount, initLedger, readAllAccounts } from 'src/utils/chaincodeAccountMethods';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -344,6 +344,12 @@ export class UserService {
     }
 
     async deleteUser(id: number):Promise<boolean> {
+        try {
+            await deleteAccount(id);
+        } catch (error) {
+            throw new HttpException('delete fail',HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        
         const success = this.user.update(id,{alive:0});
 
         if(success) return true;

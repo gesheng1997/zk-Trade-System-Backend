@@ -61,7 +61,8 @@ export class UserController {
 	//注销用户---不是真正的删除
 	@UseGuards(AuthGuard)
 	@Delete(':id')
-	async deleteUser(@Param('id') id: string) {
+	async deleteUser(@Param('id') id: string,@Request() req) {
+		if(req.user.id !== id) throw new UnauthorizedException();
 		return this.userService.deleteUser(+id);
 	}
 
