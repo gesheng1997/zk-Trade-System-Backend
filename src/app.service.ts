@@ -29,17 +29,25 @@ export class AppService {
     const pemCert = getOrgPem('org3');
     console.log('pemCert:',pemCert);
 
-    const ecPrivateKeyBuffer = fs.readFileSync(path.resolve('~', 'transaction-network', 'organizations', 'peerOrganizations', `org3.example.com`, 'ca', `priv_sk`));
-    const ecprivateKey = ecPrivateKeyBuffer.toString('hex');
-    console.log('ECDSAPrivateKey:',ecprivateKey);
+    const ecPrivateKeyBuffer = fs.readFileSync(path.resolve('/home', 'zionlee', 'transaction-network', 'organizations', 'peerOrganizations', `org3.example.com`, 'ca', `priv_sk`));
+    const ecprivateKeyPem = encodeUTF8(Uint8Array.from(ecPrivateKeyBuffer));//读取priv_sk文件，其经过解码后发现本来就是pem格式存放的
+    console.log('ECDSAPrivateKey:',ecprivateKeyPem);
 
     const ECDSAPublicKey = KEYUTIL.getKey(pemCert);
-    console.log('ECDSAPublicKey:',ECDSAPublicKey);
+    console.log('ECDSAPublicKey:',ECDSAPublicKey.pubKeyHex);
 
-    // const ECDSAverify = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
-    // ECDSAverify.init(ECDSApublicKey);
-    // ECDSAverify.updateString(msg);
-    // const isValid = ECDSAverify.verify(signature);
+    const ECDSASign = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
+    ECDSASign.init(ecprivateKeyPem);//开始签名入参为pem格式的私钥
+    ECDSASign.updateString(msg);
+    const ECDSASig = ECDSASign.sign();
+    console.log('ECDSASig:',ECDSASig);
+
+    const ECDSAverify = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
+    ECDSAverify.init(pemCert);//开始验证入参为pem证书
+    ECDSAverify.updateString(msg);
+    const isValid = ECDSAverify.verify(ECDSASig);//签名提供16进制字符串
+
+    console.log('isValid:',isValid);
 
     // console.log('private:',privateKey);
     // console.log('public:',publicKey);

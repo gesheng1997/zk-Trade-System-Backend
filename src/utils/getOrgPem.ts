@@ -10,9 +10,9 @@ import encodeUTF8 from './encodeUTF8';
 import { encodeBase64 } from 'tweetnacl-util';
 
 const getOrgPem = (orgName:string) => {
-    const pemPath = path.resolve('~', 'transaction-network', 'organizations', 'peerOrganizations', `${orgName}.example.com`, 'ca', `ca.${orgName}.example.com-cert.pem`);
+    const pemPath = path.resolve('/home', 'zionlee', 'transaction-network', 'organizations', 'peerOrganizations', `${orgName}.example.com`, 'ca', `ca.${orgName}.example.com-cert.pem`);
     const pemBuffer = fs.readFileSync(pemPath);
-    const pem = encodeBase64(Uint8Array.from(pemBuffer));
+    const pem = encodeUTF8(Uint8Array.from(pemBuffer));
 
     return pem;
 }
