@@ -94,7 +94,7 @@ export class UserService {
                 password: passwordHash,
                 publicKey,
                 balance: 0,
-                type: 0,
+                type: userType.NORMAL,
                 alive: 1,
             });
             console.log(resultEntity);
@@ -168,7 +168,7 @@ export class UserService {
                 password: passwordHash,
                 publicKey,
                 balance: 0,
-                type: 0,
+                type: userType.ORGANIZATION,
                 alive: 1,
             });
 
@@ -245,7 +245,7 @@ export class UserService {
                 password: passwordHash,
                 publicKey,
                 balance: 0,
-                type: 0,
+                type: userType.ADMIN,
                 alive: 1,
             });
             console.log(resultEntity);

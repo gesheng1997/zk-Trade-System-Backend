@@ -10,7 +10,7 @@ import { KEYUTIL, KJUR, X509 } from 'jsrsasign';
 
 @Injectable()
 export class AppService {
-  async getHello(): Promise<string> {
+  async getHello(): Promise<any> {
     const ed = await import('@noble/ed25519');
 
     const privateKey = Buffer.from(ed.utils.randomPrivateKey()).toString('hex');
@@ -18,7 +18,7 @@ export class AppService {
     const publicKeyA = await ed.getPublicKeyAsync(privateKey);
     const publicKey = Buffer.from(publicKeyA).toString('hex');
     console.log('public:',publicKey);
-    const msgStr = 'WoAi===WenJun';
+    const msgStr = '1101RuanRuanShuDaiXiong';
     const msg = Buffer.from(decodeUTF8(msgStr)).toString('hex');
     console.log('msg:',msg);
     const signatureA = await ed.signAsync(msg,privateKey);
@@ -26,8 +26,9 @@ export class AppService {
     console.log('signature:',signature);
     // const isValid = await ed.verifyAsync(signature,msg,publicKey);
 
-    const pemCert = getOrgPem('org3');
-    console.log('pemCert:',pemCert);
+    const pemCertBase64 = getOrgPem('org3');
+    console.log('pemCert:',pemCertBase64);
+    const pemCert = encodeUTF8(decodeBase64(pemCertBase64));
 
     const ecPrivateKeyBuffer = fs.readFileSync(path.resolve('/home', 'zionlee', 'transaction-network', 'organizations', 'peerOrganizations', `org3.example.com`, 'ca', `priv_sk`));
     const ecprivateKeyPem = encodeUTF8(Uint8Array.from(ecPrivateKeyBuffer));//读取priv_sk文件，其经过解码后发现本来就是pem格式存放的
@@ -63,7 +64,15 @@ export class AppService {
 
     // console.log(passwordHash);
     // testX509();
-    return 'Hello World!';
+    const res = {
+      publicKey,
+      msg,
+      signature,
+      pemCertBase64,
+      ECDSASig,
+    }
+
+    return res;
   }
 }
 
