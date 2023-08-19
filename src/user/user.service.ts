@@ -46,12 +46,15 @@ export class UserService {
 
         //查询数据库，如果当前欲注册的用户已经注册过了，
         //那么报错，这里要小心dos攻击，前端应该有失败注册次数检测机制
-        const exist = await this.user.exist({
-            select: ['username'],
+        const targetUser = await this.user.findOne({
+            select: ['username','type'],
             where: { username, },
         });
-        if (exist) 
-            throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+        if (targetUser)
+            //指定用户名的用户已存在且不是注销状态情况下报错
+            if(targetUser.type !== userType.DELETED){ 
+                throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+        }
 
         //对用户签名进行验证，保证用户具有公钥对应的私钥
         const isValid = await ed.verifyAsync(signature, password, publicKey);
@@ -110,12 +113,15 @@ export class UserService {
         //输入的pemCert为base64字符串的形式，这是为了方便传输和对比
         const { username, password, publicKey, signature, pemCert, pemSignature } = orgRegisterDto;
 
-        const exist = await this.organization.exist({
-            select: ['orgname'],
-            where: { orgname:username, },
+        const targetUser = await this.user.findOne({
+            select: ['username','type'],
+            where: { username, },
         });
-        if (exist) 
-            throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+        if (targetUser)
+            //指定用户名的用户已存在且不是注销状态情况下报错
+            if(targetUser.type !== userType.DELETED){ 
+                throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+        }
 
         try {
             //检查企业注册提供的pem证书和已加入联盟的同名组织的pem是否一致，此处pem格式为带开头结尾的BASE64字符串
@@ -195,12 +201,15 @@ export class UserService {
 
         console.log(username,password,publicKey,signature,token);
 
-        const exist = await this.user.exist({
-            select: ['username'],
+        const targetUser = await this.user.findOne({
+            select: ['username','type'],
             where: { username, },
         });
-        if (exist) 
-            throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+        if (targetUser)
+            //指定用户名的用户已存在且不是注销状态情况下报错
+            if(targetUser.type !== userType.DELETED){ 
+                throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+        }
 
         //验证管理员注册所必需的token
         if(token !== TOKEN) throw new HttpException('wrong token',HttpStatus.BAD_REQUEST);
@@ -278,8 +287,8 @@ export class UserService {
             throw new HttpException('Invalid Login',HttpStatus.BAD_REQUEST);
         }
 
-        //未查询到用户，返回null
-        if(!findRes) return null;
+        //未查询到用户或者用户已经注销，返回null
+        if(!findRes || findRes.type === userType.DELETED) return null;
         
         //验证密码
         const passwordSalt = decodeUTF8(password + SALT);
@@ -358,9 +367,6 @@ export class UserService {
             publicKey:'',
             balance:0,
             type:userType.DELETED,
-            phone:'',
-            email:'',
-            address:'',
             avatar:'',
             alive:0,
         }
