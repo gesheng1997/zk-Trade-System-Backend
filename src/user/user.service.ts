@@ -25,6 +25,7 @@ import { AccountDto } from './dto/account.dto';
 import userType from 'src/constant/userType';
 import { Organization } from './entities/organization.entity';
 import encodeUTF8 from 'src/utils/encodeUTF8';
+import { v4 as uuid } from 'uuid';
 
 const TOKEN = 'ZHUZHUXIHUANNIWENJUN';
 
@@ -349,8 +350,22 @@ export class UserService {
         } catch (error) {
             throw new HttpException('delete fail',HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        
-        const success = this.user.update(id,{alive:0});
+
+        //这里对于删除的用户，需要将他们的所有信息置为空，并且将用户名设为随机uuid
+        const deleteUserObj = {
+            username:uuid(),
+            password:'',
+            publicKey:'',
+            balance:0,
+            type:userType.DELETED,
+            phone:'',
+            email:'',
+            address:'',
+            avatar:'',
+            alive:0,
+        }
+
+        const success = this.user.update(id,deleteUserObj);
 
         if(success) return true;
         else return false;

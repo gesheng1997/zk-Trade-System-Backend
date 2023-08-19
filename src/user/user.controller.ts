@@ -62,7 +62,7 @@ export class UserController {
 	@UseGuards(AuthGuard)
 	@Delete(':id')
 	async deleteUser(@Param('id') id: string,@Request() req) {
-		if(req.user.id !== id) throw new UnauthorizedException();
+		if(req.user.userId !== +id) throw new UnauthorizedException();
 		return this.userService.deleteUser(+id);
 	}
 
