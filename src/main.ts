@@ -5,6 +5,7 @@ import { HttpFilter } from './common/filterException';
 import fs from 'fs';
 
 async function bootstrap() {
+	//https配置项
 	const httpsOptions = {
 		key: fs.readFileSync('./https/https-private.key'),
 		cert: fs.readFileSync('./https/https-cert.pem'),

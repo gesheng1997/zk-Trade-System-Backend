@@ -1,9 +1,11 @@
+//后续有时间会改为使用ConfigModule管理
 import * as path from 'path';
 
 const ORG_NAME = 'org1';
 const cryptoPath = envOrDefault('CRYPTO_PATH', path.resolve('/home', 'zionlee', 'transaction-network', 'organizations', 'peerOrganizations', `${ORG_NAME}.example.com`));
 
 const envConfig = {
+    orgname:ORG_NAME,
     channelName : envOrDefault('CHANNEL_NAME', 'transactionchannel'),
     chaincodeName: envOrDefault('CHAINCODE_NAME', 'transactionbasic'),
     mspId: envOrDefault('MSP_ID', 'Org1MSP'),

@@ -1,3 +1,4 @@
+import userType from 'src/constant/userType';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+/* 用户表schema */
 @Entity()
 export class User {
 	@PrimaryGeneratedColumn({ type: 'int' })
@@ -33,7 +35,7 @@ export class User {
 	@Column({ type: 'int' })
 	balance: number;
 
-	@Column({ type: 'enum', enum: { normal: 0, orgnization: 1, admin: 2 } })
+	@Column({ type: 'enum', enum: userType })
 	type: number;
 
 	//这里不需要写@index()注解了！因为unique:true会自动创建唯一索引

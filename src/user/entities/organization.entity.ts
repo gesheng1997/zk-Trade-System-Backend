@@ -7,6 +7,7 @@ import {
     UpdateDateColumn,
 } from 'typeorm';
   
+/* 组织表schema */
 @Entity()
 export class Organization{
 	@PrimaryGeneratedColumn({ type: 'int' })
