@@ -5,6 +5,7 @@ import { InjectQueue, OnQueueCompleted, Process, Processor } from '@nestjs/bull'
 import { Job, Queue } from "bull";
 import batchCount from "src/constant/batchCount";
 import { v4 as uuid } from 'uuid';
+import { verifyBatchTransaction } from "src/utils/chaincodeAccountMethods";
 
 @Injectable()
 @Processor('transaction')
@@ -14,11 +15,15 @@ export class TransactionProcessor{
 
     @Process('verifyCome')
     async handleVerification(job:Job){
-       const { data } = job;
+		const { data } = job;
 
-       //交由fabric进行零知识证明验证并获取结果
-       const isValid = true;
+		const zkProofStr = JSON.stringify(data);
+		const batchTransInfo = verifyBatchTransaction(zkProofStr);
 
-       this.verifyQueue.emit('verifySuccessEvent',data.uuid);//告知指定uuid的二级队列订阅者验证完成
+		//验证成功则发布验证成功的事件
+		if(batchTransInfo) this.verifyQueue.emit('verifySuccessEvent',data.uuid, batchTransInfo);//告知指定uuid的二级队列订阅者验证完成
+
+		//否则发布验证失败事件
+		else this.verifyQueue.emit('varifyFailEvent',data.uuid);
     }
 }

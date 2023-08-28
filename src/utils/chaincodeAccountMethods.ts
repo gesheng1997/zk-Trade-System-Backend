@@ -125,7 +125,7 @@ export const updateAccountBalance = async (id: number,balanceChange:number): Pro
 }
 
 //批量update的方法，主要用于批量验证交易之后的更新，这个方法集成了批量验证链码的调用和循环以更新批量交易结果
-export const updateBatchAccountBalance = () => { return ''}
+// export const updateBatchAccountBalance = () => { return ''}
 
 //更新账号公私钥对的方法
 export const updateAccountPublicKey = async (id: number,publicKeyChange:string): Promise<void> => {
@@ -143,6 +143,23 @@ export const updateAccountPublicKey = async (id: number,publicKeyChange:string):
     console.log('*** Transaction committed successfully');
 
     closeConnection(client,gateway);
+}
+
+export const verifyBatchTransaction = async (zkProofStr:string): Promise<string> => {
+    const { client, gateway, contract } = await getConnection();
+
+    const result = await contract.submit(
+        'UpdateAccount',
+        {
+            'arguments':[ zkProofStr ],
+        }
+    );
+
+    console.log('*** Transaction committed successfully');
+
+    closeConnection(client,gateway);
+
+    return result.toString();
 }
 
 //企业更新pem证书
