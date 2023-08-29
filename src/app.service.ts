@@ -74,6 +74,39 @@ export class AppService {
 
     return res;
   }
+
+  async getSignTrans(signInfo:any): Promise<any>{
+    const { from, to, comment, amount, privateK, } = signInfo;
+
+    const timestamp = new Date();
+
+    const digestRaw = {
+      from,
+      to,
+      amount,
+      timestamp,
+      comment,
+    }
+
+    const digestStr = Buffer.from(JSON.stringify(digestRaw));
+
+    const digestUint8 = sha256(digestStr);
+
+    const digest = Buffer.from(digestUint8).toString('hex');
+
+    const privateKPem = encodeUTF8(Buffer.from(privateK));
+
+    const ECDSASign = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
+    ECDSASign.init(privateKPem);//开始签名入参为pem格式的私钥
+    ECDSASign.updateString(digest);
+    const ECDSASig = ECDSASign.sign();
+
+    return {
+      timestamp,
+      digest,
+      ECDSASig,
+    }
+  }
 }
 
 function myEncodeUTF8(arr: Uint8Array) {

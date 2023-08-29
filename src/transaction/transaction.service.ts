@@ -102,6 +102,10 @@ export class TransactionService {
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
 
 		//timestamp检测,amount必须>0
+		if(amount <= 0) throw new HttpException({
+			code:Exception.INVALID_TRANSACTION,
+			message:'Amount Of Deposit Transaction Cannot Less Or Equal to 0'
+		},HttpStatus.BAD_REQUEST);
 
 		//查询金融组织详细信息
 		const orgInfo = await this.organization.findOne({
@@ -166,6 +170,12 @@ export class TransactionService {
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
 
 		//timestamp检测,amount必须<0
+		if(amount >= 0) throw new HttpException({
+			code:Exception.INVALID_TRANSACTION,
+			message:'Amount Of Deposit Transaction Cannot Less Or Equal to 0'
+		},HttpStatus.BAD_REQUEST);
+
+		//这里需要调用金融组织api将提现金额充入其中
 
 		//查询金融组织详细信息
 		const orgInfo = await this.organization.findOne({

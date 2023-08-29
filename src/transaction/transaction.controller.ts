@@ -64,7 +64,10 @@ export class TransactionController {
 	@Get()
 	async findAll(@Request() req) {
 		//管理员可以查询系统中所有交易信息
-		if(req.user.type !== userType.ADMIN) throw new UnauthorizedException();
+		if(req.user.type !== userType.ADMIN) throw new HttpException({
+			code:Exception.PERMISSION_DENIED,
+			message:'Only Admin Can Check Full Informations Of Transaction'
+		},HttpStatus.UNAUTHORIZED);
 		return this.transactionService.findAll();
 	}
 
@@ -82,7 +85,7 @@ export class TransactionController {
 
 	@UseGuards(AuthGuard)
 	@Get('/voucher/:id')
-	async generateVoucher(@Param('id') id:string){
+	async generateVoucher(@Param('id') id:string, @Request() req){
 		return this.transactionService.generateVoucher(+id);
 	}
 

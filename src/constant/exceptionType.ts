@@ -14,9 +14,12 @@ enum Exception{
     WRONG_PASSWORD,//密码错误
     INVALID_TRANSACTION,//非法交易，要么时间戳不合法，要么交易金额小于0
     INVALID_ORGANIZAITON,//非法的金融组织，所给id对应组织未在系统中注册，不存在
+    INVALID_UPDATE,//非法的更新尝试，用户尝试更新别的用户的个人信息
+    INVALID_DELETE,//非法的注销账户尝试，用户尝试注销别的用户的账号
     WRONG_IDENTITY,//发起交易的fromid和token中的userId不相符
     UPDATE_BALANCES_FAIL,//批量更新数据库账户余额失败
     UPDATE_TRANSACTION_STATE_FAIL,//更新批量交易状态失败
+    PERMISSION_DENIED,//所有管理员才能做的权限不足操作
 }
 
 export default Exception;

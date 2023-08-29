@@ -359,7 +359,7 @@ export class UserService {
 
     //更新账户相关的信息，不涉及账户余额以及公私钥的更新
     async updateUserInfo(id:number,updateUserInfoDto:UpdateUserInfoDto):Promise<boolean>{
-        const success = this.user.update(id,updateUserInfoDto);
+        const success = await this.user.update(id,updateUserInfoDto);
         console.log(success);
 
         if(success) return true;

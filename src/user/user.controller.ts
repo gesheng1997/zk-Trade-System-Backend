@@ -9,6 +9,8 @@ import {
   UseGuards,
   Request,
   UnauthorizedException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AdminRegisterDto, OrgRegisterDto, UserRegisterDto } from './dto/user-register.dto';
@@ -18,6 +20,7 @@ import { UserInfoDto } from './dto/user-info.dto';
 import { AuthGuard } from 'src/authGuard/auth.guard';
 import userType from 'src/constant/userType';
 import { AccountDto } from './dto/account.dto';
+import Exception from 'src/constant/exceptionType';
 
 @Controller('user')
 export class UserController {
@@ -54,7 +57,13 @@ export class UserController {
 	async updateUserInfo(
 		@Param('id') id: string,
 		@Body() updateUserInfoDto: UpdateUserInfoDto,
+		@Request() req,
 	) {
+		if(req.user.userId !== +id)
+			throw new HttpException({
+				code:Exception.INVALID_UPDATE,
+				message:'Cannot Update Other Users\' Personal Information'
+			},HttpStatus.BAD_REQUEST);
 		return this.userService.updateUserInfo(+id, updateUserInfoDto);
 	}
 
@@ -62,7 +71,10 @@ export class UserController {
 	@UseGuards(AuthGuard)
 	@Delete(':id')
 	async deleteUser(@Param('id') id: string,@Request() req) {
-		if(req.user.userId !== +id) throw new UnauthorizedException();
+		if(req.user.userId !== +id) throw new HttpException({
+			code:Exception.INVALID_DELETE,
+			message:'Cannot Delete Other Users\' Account',
+		},HttpStatus.BAD_REQUEST);
 		return this.userService.deleteUser(+id);
 	}
 

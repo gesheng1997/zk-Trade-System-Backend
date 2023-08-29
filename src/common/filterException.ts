@@ -12,7 +12,7 @@ export class HttpFilter implements ExceptionFilter{
         const status = exception.getStatus();
         response.status(status).json({
             status,
-            data:exception.message,
+            data:exception,
             path:request.path,
             time:new Date(),
             success:false,
