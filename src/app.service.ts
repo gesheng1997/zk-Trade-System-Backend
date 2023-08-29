@@ -76,6 +76,7 @@ export class AppService {
   }
 
   async getSignTrans(signInfo:any): Promise<any>{
+    const ed = await import('@noble/ed25519');
     const { from, to, comment, amount, privateK, } = signInfo;
 
     const timestamp = new Date();
@@ -94,17 +95,14 @@ export class AppService {
 
     const digest = Buffer.from(digestUint8).toString('hex');
 
-    const privateKPem = encodeUTF8(Buffer.from(privateK));
-
-    const ECDSASign = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
-    ECDSASign.init(privateKPem);//开始签名入参为pem格式的私钥
-    ECDSASign.updateString(digest);
-    const ECDSASig = ECDSASign.sign();
+    const signatureA = await ed.signAsync(digest,privateK);
+    const signature = Buffer.from(signatureA).toString('hex');
+    console.log('signature:',signature);
 
     return {
       timestamp,
       digest,
-      ECDSASig,
+      signature,
     }
   }
 }
