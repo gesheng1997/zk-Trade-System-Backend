@@ -1,5 +1,5 @@
-import TransactionState from 'src/constant/TransactionState';
-import TransactionType from 'src/constant/TransactionType';
+import TransactionState from 'src/constant/transactionState';
+import TransactionType from 'src/constant/transactionType';
 import {
     Column,
     CreateDateColumn,

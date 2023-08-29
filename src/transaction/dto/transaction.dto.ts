@@ -1,7 +1,7 @@
 //查询交易返回的Dto
 
-import TransactionState from "src/constant/TransactionState";
-import TransactionType from "src/constant/TransactionType";
+import TransactionState from "src/constant/transactionState";
+import TransactionType from "src/constant/transactionType";
 
 export class TransactionDto{
     id:number;

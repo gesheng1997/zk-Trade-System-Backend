@@ -7,8 +7,8 @@ import fs from 'fs';
 async function bootstrap() {
 	//https配置项
 	const httpsOptions = {
-		key: fs.readFileSync('./https/https-private.key'),
-		cert: fs.readFileSync('./https/https-cert.pem'),
+		key: fs.readFileSync('src/https/https-private.key'),
+		cert: fs.readFileSync('src/https/https-cert.pem'),
 	}
 
 	const app = await NestFactory.create(AppModule,{
