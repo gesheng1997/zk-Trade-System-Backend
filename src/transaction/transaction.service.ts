@@ -326,11 +326,15 @@ export class TransactionService {
 		try {
 			this.entityManager.transaction(async transactionalEntityManager => {
                 for(const [idx,id] of userIds.entries() ){
-                    await transactionalEntityManager.getRepository(User).update(id,{balance:finalBalances[idx]});
+                    await transactionalEntityManager
+						.getRepository(User)
+						.update(id,{balance:finalBalances[idx]});
                 }
 
 				for(const serverSignature of serverSignatures){
-					transactionalEntityManager.getRepository(Transaction).update(serverSignature.id,{
+					transactionalEntityManager
+					.getRepository(Transaction)
+					.update(serverSignature.id,{
 						state:TransactionState.SETTLED,
 						serverVouchersig:serverSignature.signature,
 					});

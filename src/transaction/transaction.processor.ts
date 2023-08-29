@@ -137,7 +137,7 @@ export class TransactionProcessor{
 
 				console.log('@');
 				const zkTrans = {
-					uuid,
+					uuid:uuidValue,
 					ids,
 					finalBalances,
 					proof,
@@ -155,7 +155,9 @@ export class TransactionProcessor{
             try {
 				this.entityManager.transaction(async transacionalEntityManager => {
 					for(const trans of transactions){
-					transacionalEntityManager.getRepository(Transaction).update(trans.id,{state:TransactionState.VERIFYING});
+					transacionalEntityManager
+						.getRepository(Transaction)
+						.update(trans.data.transactionId,{state:TransactionState.VERIFYING});
 					}
 				})
             } catch (error) {
@@ -181,7 +183,9 @@ export class TransactionProcessor{
 					try {
 						this.entityManager.transaction(async transacionalEntityManager => {
 							for(const trans of transactions){
-								transacionalEntityManager.getRepository(Transaction).update(trans.data.id,{state:TransactionState.VERIFIED});
+								transacionalEntityManager
+									.getRepository(Transaction)
+									.update(trans.data.transactionId,{state:TransactionState.VERIFIED});
 							}
 						});
 						//成功验证之后移除该对一级队列的监听器
@@ -197,7 +201,7 @@ export class TransactionProcessor{
 					} 
 					//验证成功之后，首先让服务器对凭证签名（即对digest签名）
 					const transDigests = transactions.map(trans => ({
-						id:trans.data.id,
+						id:trans.data.transactionId,
 						digest:trans.data.digest,
 					}));
 
@@ -213,7 +217,9 @@ export class TransactionProcessor{
 					try {
 						this.entityManager.transaction(async transacionalEntityManager => {
 							for(const trans of transactions){
-								transacionalEntityManager.getRepository(Transaction).update(trans.data.id,{state:TransactionState.FAILED});
+								transacionalEntityManager
+								.getRepository(Transaction)
+								.update(trans.data.transactionId,{state:TransactionState.FAILED});
 							}
 						});
 						//成功验证之后移除该对一级队列的监听器

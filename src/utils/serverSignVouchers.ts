@@ -8,6 +8,8 @@ import path from "path";
 import { promises as fs } from 'fs';
 import envConfig from "src/config/envConfig";
 import * as crypto from 'crypto';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import Exception from 'src/constant/exceptionType';
 
 //单笔签署
 const serverSignVoucher = async (digest:string,privateKey:string):Promise<string> => {
@@ -25,18 +27,29 @@ const serverSignVouchers = async (transDigests:{id:number,digest:string}[]):Prom
     const files = await fs.readdir(envConfig.keyDirectoryPath);
     const keyPath = path.resolve(envConfig.keyDirectoryPath, files[0]);
     const privateKeyPem = await fs.readFile(keyPath);
-    const privateKey = privateKeyPem.toString('hex');
+    const privateKey = privateKeyPem.toString('utf8');
+
+
 
     const signatures:{id:number,signature:string}[] = [];
 
-    for(const transDigest of transDigests){
-        const signature = await serverSignVoucher(transDigest.digest,privateKey);
-        signatures.push({
-            id:transDigest.id,
-            signature,
-        });
+    try {
+        for(const transDigest of transDigests){
+            const signature = await serverSignVoucher(transDigest.digest,privateKey);
+            signatures.push({
+                id:transDigest.id,
+                signature,
+            });
+        }
+        return signatures;
+    } catch (error) {
+        console.log(error);
+        throw new HttpException({
+            code:Exception.GENERATE_VOUCHERS_FAIL,
+            message:'Fail To Generate Vouchers For Batch Transaction'
+        },HttpStatus.INTERNAL_SERVER_ERROR)
     }
-    return signatures;
+
 }
 
 export default serverSignVouchers;

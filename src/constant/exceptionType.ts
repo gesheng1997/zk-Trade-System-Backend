@@ -20,6 +20,7 @@ enum Exception{
     UPDATE_BALANCES_FAIL,//批量更新数据库账户余额失败
     UPDATE_TRANSACTION_STATE_FAIL,//更新批量交易状态失败
     PERMISSION_DENIED,//所有管理员才能做的权限不足操作
+    GENERATE_VOUCHERS_FAIL,//服务器批量签名凭证失败
 }
 
 export default Exception;
