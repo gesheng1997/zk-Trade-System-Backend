@@ -101,15 +101,15 @@ export class TransactionService {
 		const ed = await import('@noble/ed25519');		
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
 
-		//timestamp检测,amount必须>0
-		if(amount <= 0) throw new HttpException({
+		//timestamp检测,对于存钱交易amount必须<0
+		if(amount >= 0) throw new HttpException({
 			code:Exception.INVALID_TRANSACTION,
-			message:'Amount Of Deposit Transaction Cannot Less Or Equal to 0'
+			message:'Amount Of Deposit Transaction Cannot Be Great Or Equal to 0'
 		},HttpStatus.BAD_REQUEST);
 
 		//查询金融组织详细信息
 		const orgInfo = await this.organization.findOne({
-			where:{id:to}
+			where:{userId:to}
 		});
 		//组织不存在，报错
 		if(!orgInfo){
@@ -127,12 +127,11 @@ export class TransactionService {
 			where:{id:from},
 		});
 
-		const publicKey = Buffer.from(decodeBase64(fromUser.publicKey)).toString('hex');
-		const isValid = await ed.verifyAsync(signature, digest, publicKey);
+		const isValid = await ed.verifyAsync(signature, digest, fromUser.publicKey);
 
 		if(isValid){
 			//将交易写入交易表
-			const newTrans = await this.transaction.save({
+			const newTrans = await this.transaction.save({ 
 				from,
 				to,
 				amount,
@@ -145,7 +144,7 @@ export class TransactionService {
 			});
 
 			//单笔交易加入队列
-			this.transactionQueue.add({
+			this.transactionQueue.add('transCome',{
 				transactionId:newTrans.id,
 				from,
 				to,
@@ -169,10 +168,10 @@ export class TransactionService {
 		const ed = await import('@noble/ed25519');		
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
 
-		//timestamp检测,amount必须<0
-		if(amount >= 0) throw new HttpException({
+		//timestamp检测,amount必须>0
+		if(amount <= 0) throw new HttpException({
 			code:Exception.INVALID_TRANSACTION,
-			message:'Amount Of Deposit Transaction Cannot Less Or Equal to 0'
+			message:'Amount Of Deposit Transaction Cannot Be Less Or Equal to 0'
 		},HttpStatus.BAD_REQUEST);
 
 		//这里需要调用金融组织api将提现金额充入其中

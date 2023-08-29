@@ -149,7 +149,7 @@ export const verifyBatchTransaction = async (zkProofStr:string): Promise<string>
     const { client, gateway, contract } = await getConnection();
 
     const result = await contract.submit(
-        'UpdateAccount',
+        'zkVerifier',
         {
             'arguments':[ zkProofStr ],
         }

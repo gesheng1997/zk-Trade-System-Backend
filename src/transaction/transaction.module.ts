@@ -9,6 +9,7 @@ import { User } from 'src/user/entities/user.entity';
 import { Transaction } from './entities/transaction.entity';
 import { UserModule } from 'src/user/user.module';
 import { Organization } from 'src/user/entities/organization.entity';
+import { VerifyProcessor } from './verify.processor';
 
 @Module({
   imports:[
@@ -23,6 +24,6 @@ import { Organization } from 'src/user/entities/organization.entity';
     UserModule,
   ],
   controllers: [TransactionController],
-  providers: [TransactionService, TransactionProcessor, User, Transaction, Organization],
+  providers: [TransactionService, TransactionProcessor, User, Transaction, Organization, VerifyProcessor],
 })
 export class TransactionModule {}

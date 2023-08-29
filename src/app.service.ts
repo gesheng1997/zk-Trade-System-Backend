@@ -65,6 +65,7 @@ export class AppService {
     // console.log(passwordHash);
     // testX509();
     const res = {
+      privateKey,
       publicKey,
       msg,
       signature,
@@ -95,6 +96,7 @@ export class AppService {
 
     const digest = Buffer.from(digestUint8).toString('hex');
 
+    console.log(digest,privateK);
     const signatureA = await ed.signAsync(digest,privateK);
     const signature = Buffer.from(signatureA).toString('hex');
     console.log('signature:',signature);

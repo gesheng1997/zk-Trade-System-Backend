@@ -13,7 +13,7 @@ import envConfig from "src/config/envConfig";
 import serverSignVouchers from "src/utils/serverSignVouchers";
 import { TransactionService } from "./transaction.service";
 import { User } from "src/user/entities/user.entity";
-import snarkjs from 'snarkjs';
+const snarkjs = require('snarkjs');
 import fs from 'fs';
 import path from 'path'
 
@@ -40,7 +40,7 @@ export class TransactionProcessor{
 
             console.log('\n*********************开始一次打包！*************************\n')
 
-            const transactions = await this.transactionQueue.getJobs(['completed'],0,3,true);
+            const transactions = await this.transactionQueue.getJobs(['completed'],0,batchCount.count - 1,true);
 
 			//声明零知识证明所需要的一些参数
 			//使用Map可以做到在一次循环之内完成参数生成
@@ -118,30 +118,38 @@ export class TransactionProcessor{
 			//保证一级队列完成验证事件发生时可以检测成功验证的打包交易是不是我这个processor发出的！
             const uuidValue = uuid();
             const batchTrans = {
-				ids,
-				initBalances,
-				finalBalances,
-				batchTransactions,
+				user_ids: ids,
+				init_state: initBalances,
+				final_state: finalBalances,
+				transactions: batchTransactions,
             }
+			console.log(batchTrans);
 			//使用snarkjs对打包交易生成零知识证明
-			const { proof, publicSignals } = await snarkjs.plonk.fullProve(batchTrans,"../circuit/batchtransaction_js/batchtransaction.wasm","../circuit/batchtransaction_final.zkey")
+			try{
+				const { proof, publicSignals } = await snarkjs.plonk.fullProve(batchTrans,
+					path.resolve("public","circuit","batchtransaction_js","batchtransaction.wasm"),
+					path.resolve("public","circuit","batchtransaction_final.zkey")
+				);
+				console.log('proof:',proof);
+				console.log('publicSignals:',publicSignals);
 
-			const vKey = JSON.parse(fs.readFileSync(path.resolve('..','circuit','verification_key.json')).toString('utf8'));
+				const vKey = JSON.parse(fs.readFileSync(path.resolve("public","circuit","verification_key.json")).toString('utf8'));
 
-			const zkTrans = {
-				uuid,
-				ids,
-				finalBalances,
-				proof,
-				publicSignals,
-				vKey,
+				console.log('@');
+				const zkTrans = {
+					uuid,
+					ids,
+					finalBalances,
+					proof,
+					publicSignals,
+					vKey,
+				}
+				//打包交易加入一级队列
+				this.verifyQueue.add('verifyCome',zkTrans);
+			}catch(err){
+				console.log(err);
 			}
-			//打包交易加入一级队列
-			this.verifyQueue.add('verifyCome',zkTrans);
             console.log('\n*********************打包交易处理完成！**********************\n')
-
-            //加入一级队列
-            this.verifyQueue.add('verifyCome',batchTrans);
 
             //加入一级队列之后，更新批量交易状态
             try {

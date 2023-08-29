@@ -8,8 +8,8 @@ import { v4 as uuid } from 'uuid';
 import { verifyBatchTransaction } from "src/utils/chaincodeAccountMethods";
 
 @Injectable()
-@Processor('transaction')
-export class TransactionProcessor{
+@Processor('verify')
+export class VerifyProcessor{
     constructor(
       @InjectQueue('verify') private readonly verifyQueue: Queue){}
 
@@ -18,12 +18,17 @@ export class TransactionProcessor{
 		const { data } = job;
 
 		const zkProofStr = JSON.stringify(data);
-		const batchTransInfo = verifyBatchTransaction(zkProofStr);
+		try {
+			const batchTransInfo = await verifyBatchTransaction(zkProofStr);
 
-		//验证成功则发布验证成功的事件
-		if(batchTransInfo) this.verifyQueue.emit('verifySuccessEvent',data.uuid, batchTransInfo);//告知指定uuid的二级队列订阅者验证完成
-
+			//验证成功则发布验证成功的事件
+			if(batchTransInfo) this.verifyQueue.emit('verifySuccessEvent',data.uuid, batchTransInfo);//告知指定uuid的二级队列订阅者验证完成
+			else throw new Error(batchTransInfo)
+		} catch (error) {
+			console.log(error);
+			
+			this.verifyQueue.emit('varifyFailEvent',data.uuid);
+		}
 		//否则发布验证失败事件
-		else this.verifyQueue.emit('varifyFailEvent',data.uuid);
     }
 }
