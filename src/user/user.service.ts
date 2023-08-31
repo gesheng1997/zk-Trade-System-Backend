@@ -10,8 +10,8 @@ import {
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 import { CheckUserLoginDto } from './dto/check-user-login.dto';
 import { createAccount, createOrgAccount, deleteAccount, initLedger, readAllAccounts } from 'src/utils/chaincodeAccountMethods';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import getOrgPem from '../utils/getOrgPem';
 
@@ -26,16 +26,16 @@ import userType from 'src/constant/userType';
 import { Organization } from './entities/organization.entity';
 import encodeUTF8 from 'src/utils/encodeUTF8';
 import { v4 as uuid } from 'uuid';
+import Exception from 'src/constant/exceptionType';
 
 const TOKEN = 'ZHUZHUXIHUANNIWENJUN';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
-    private readonly user: Repository<User>,
-    @InjectRepository(Organization)
-    private readonly organization: Repository<Organization>,
+    @InjectRepository(User) private readonly user: Repository<User>,
+    @InjectRepository(Organization) private readonly organization: Repository<Organization>,
+    @InjectEntityManager() private readonly entityManager: EntityManager,
     private jwtService:JwtService
   ) {}
 
@@ -53,7 +53,10 @@ export class UserService {
         if (targetUser)
             //指定用户名的用户已存在且不是注销状态情况下报错
             if(targetUser.type !== userType.DELETED){ 
-                throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+                throw new HttpException({
+                    code:Exception.ALREADY_EXIST,
+                    message:'User Already Exist',
+                }, HttpStatus.BAD_REQUEST);
         }
 
         //对用户签名进行验证，保证用户具有公钥对应的私钥
@@ -70,10 +73,10 @@ export class UserService {
                     initLedger();
                 } catch (error) {
                     console.log(error);
-                    throw new HttpException(
-                        'init fail',
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                    );
+                    throw new HttpException({
+                        code:Exception.INIT_FAIL,
+                        message:'Fabric Initialization Fail'
+                    },HttpStatus.INTERNAL_SERVER_ERROR,);
                 }
                 newid = 1;
             }else newid = countId + 1;
@@ -83,10 +86,10 @@ export class UserService {
                 createAccount(newid, userType.NORMAL, publicKey);
             } catch(error) {
                 console.log(error);
-                throw new HttpException(
-                    'create fail',
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                );
+                throw new HttpException({
+                    code:Exception.CREATE_FAIL,
+                    message:'Fabric Create Account Fail',
+                },HttpStatus.INTERNAL_SERVER_ERROR,);
             }
 
             //创建链上账号没有报错的情况下，写入数据库
@@ -104,7 +107,10 @@ export class UserService {
             console.log(resultEntity);
             return resultEntity.id;
         } else {
-            throw new HttpException('verify fail', HttpStatus.BAD_REQUEST);
+            throw new HttpException({
+                code:Exception.VERIFY_FAIL,
+                message:'Verify Signature Fail',
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -120,7 +126,10 @@ export class UserService {
         if (targetUser)
             //指定用户名的用户已存在且不是注销状态情况下报错
             if(targetUser.type !== userType.DELETED){ 
-                throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+                throw new HttpException({
+                    code:Exception.ALREADY_EXIST,
+                    message:'User Already Exist',
+                }, HttpStatus.BAD_REQUEST);
         }
 
         try {
@@ -137,7 +146,10 @@ export class UserService {
             const validSig = verifyExtraECDSASig(pemCertUTF8,pemSignature,password);
             if(!validSig) throw new Error();
         } catch (error) {
-            throw new HttpException('Invalid pemCert',HttpStatus.BAD_REQUEST);
+            throw new HttpException({
+                code:Exception.INVALID_PEMCERT,
+                message:'Invalid X.509 Certification',
+            },HttpStatus.BAD_REQUEST);
         }
 
         //验证ed25519签名
@@ -151,10 +163,10 @@ export class UserService {
                     initLedger();
                 } catch (error) {
                     console.log(error);
-                    throw new HttpException(
-                        'init fail',
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                    );
+                    throw new HttpException({
+                        code:Exception.INIT_FAIL,
+                        message:'Fabric Initialization Fail'
+                    },HttpStatus.INTERNAL_SERVER_ERROR,);
                 }
                 newid = 1;
             }else newid = countId + 1;
@@ -162,10 +174,10 @@ export class UserService {
             try {
                 createOrgAccount(newid, publicKey, pemCert);
             } catch {
-                throw new HttpException(
-                    'create fail',
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                );
+                throw new HttpException({
+                    code:Exception.CREATE_FAIL,
+                    message:'Fabric Create Account Fail',
+                },HttpStatus.INTERNAL_SERVER_ERROR,);
             }
             const passwordSalt = decodeUTF8(password + SALT);
             const passwordHash = encodeBase64(sha256(passwordSalt));
@@ -191,7 +203,10 @@ export class UserService {
             console.log(resultOrg);
             return resultUser.id;
         } else {
-            throw new HttpException('verify fail', HttpStatus.BAD_REQUEST);
+            throw new HttpException({
+                code:Exception.VERIFY_FAIL,
+                message:'Verify Signature Fail',
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -208,11 +223,17 @@ export class UserService {
         if (targetUser)
             //指定用户名的用户已存在且不是注销状态情况下报错
             if(targetUser.type !== userType.DELETED){ 
-                throw new HttpException('already exist', HttpStatus.BAD_REQUEST);
+                throw new HttpException({
+                    code:Exception.ALREADY_EXIST,
+                    message:'User Already Exist',
+                }, HttpStatus.BAD_REQUEST);
         }
 
         //验证管理员注册所必需的token
-        if(token !== TOKEN) throw new HttpException('wrong token',HttpStatus.BAD_REQUEST);
+        if(token !== TOKEN) throw new HttpException({
+            code:Exception.WRONG_TOKEN,
+            message:'Wrong Administrator Token',
+        },HttpStatus.BAD_REQUEST);
 
         //对用户签名进行验证，保证用户具有公钥对应的私钥
         const isValid = await ed.verifyAsync(signature, password, publicKey);
@@ -226,10 +247,10 @@ export class UserService {
                     await initLedger();
                 } catch (error) {
                     console.log(error);
-                    throw new HttpException(
-                        'init fail',
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                    );
+                    throw new HttpException({
+                        code:Exception.INIT_FAIL,
+                        message:'Fabric Initialization Fail'
+                    },HttpStatus.INTERNAL_SERVER_ERROR,);
                 }
                 newid = 1;
             }else newid = countId + 1;
@@ -239,10 +260,10 @@ export class UserService {
                 await createAccount(newid, userType.ADMIN, publicKey);
             } catch(error) {
                 console.log('@',error);
-                throw new HttpException(
-                    'create fail',
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                );
+                throw new HttpException({
+                    code:Exception.CREATE_FAIL,
+                    message:'Fabric Create Account Fail',
+                },HttpStatus.INTERNAL_SERVER_ERROR,);
             }
 
             //创建链上账号没有报错的情况下，写入数据库
@@ -261,7 +282,10 @@ export class UserService {
             console.log(resultEntity);
             return resultEntity.id;
         } else {
-            throw new HttpException('verify fail', HttpStatus.BAD_REQUEST);
+            throw new HttpException({
+                code:Exception.VERIFY_FAIL,
+                message:'Verify Signature Fail',
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -284,7 +308,10 @@ export class UserService {
             })
         }else{
             //登录时三者都没有提供，报错
-            throw new HttpException('Invalid Login',HttpStatus.BAD_REQUEST);
+            throw new HttpException({
+                code:Exception.INVALID_LOGIN,
+                message:'Invalid User Login',
+            },HttpStatus.BAD_REQUEST);
         }
 
         //未查询到用户或者用户已经注销，返回null
@@ -294,7 +321,10 @@ export class UserService {
         const passwordSalt = decodeUTF8(password + SALT);
         const passwordHash = encodeBase64(sha256(passwordSalt));
         if(passwordHash != findRes.password){
-            throw new UnauthorizedException();
+            throw new HttpException({
+                code:Exception.WRONG_PASSWORD,
+                message:'Wrong Password',
+            },HttpStatus.UNAUTHORIZED);
         }else{
             //登陆成功，为用户签发token
             const payload = {
@@ -329,7 +359,8 @@ export class UserService {
 
     //更新账户相关的信息，不涉及账户余额以及公私钥的更新
     async updateUserInfo(id:number,updateUserInfoDto:UpdateUserInfoDto):Promise<boolean>{
-        const success = this.user.update(id,updateUserInfoDto);
+        //这里对于更新unique字段没有报错提示！加上
+        const success = await this.user.update(id,updateUserInfoDto);
         console.log(success);
 
         if(success) return true;
@@ -340,24 +371,49 @@ export class UserService {
         批量更新余额方法，在缓冲队列中间件检测到交易数量达到chunk大小时，
         会先调用交易接口中的批量验证交易的方法，那个方法会验证并更新链上账户中的余额，
         验证并更新成功之后调用这边的批量更新方法更新后端数据库
-    */
-    // async updateBatchAccountBalance(ids:number[],balances:number[]){
 
+        删除这个方法，不需要了，因为批量更新用户余额和批量更新交易状态应该是一个事务，
+        如果在这里加这个方法就成了两个事务，故这部分逻辑移到transactionService中一起做
+    */
+    // async updateAccountBalances(ids:number[],balances:number[]):Promise<boolean>{
+    //     //开启事务更新批量交易中涉及的用户的余额
+    //     try {
+    //         this.entityManager.transaction(async transactionalEntityManager => {
+    //             for(const [idx,id] of ids.entries() ){
+    //                 await transactionalEntityManager.getRepository(User).update(id,{balance:balances[idx]});
+    //             }
+    //         });
+    //     } catch (error) {
+    //         throw new HttpException({
+    //             code:Exception.UPDATE_BALANCES_FAIL,
+    //             message:'Error When Update Balances In Batch In User Table'
+    //         },HttpStatus.INTERNAL_SERVER_ERROR)
+    //     }
+
+    //     return true;
+    //     // ids.forEach((id,idx) => {
+    //     //     this.user.transaction(id,{balance:balances[idx]}).then(success => {
+    //     //         if(!success)
+    //     //     })
+    //     // })
     // }
 
     //更新单个账户的余额是一个私有方法，被批量更新余额方法调用
-    private async updateAccountBalance(id: number, balance:number):Promise<boolean> {
-        const success = this.user.update(id,{balance});
+    // private async updateAccountBalance(id: number, balance:number):Promise<boolean> {
+    //     const success = this.user.update(id,{balance});
 
-        if(success) return true;
-        else return false;
-    }
+    //     if(success) return true;
+    //     else return false;
+    // }
 
     async deleteUser(id: number):Promise<boolean> {
         try {
             await deleteAccount(id);
         } catch (error) {
-            throw new HttpException('delete fail',HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new HttpException({
+                code:Exception.DELETE_FAIL,
+                message:'Fabric Delete Fail',
+            },HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         //这里对于删除的用户，需要将他们的所有信息置为空，并且将用户名设为随机uuid
@@ -384,7 +440,10 @@ export class UserService {
 
             return Accounts;
         } catch (error) {
-            throw new HttpException('qurey failed',HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new HttpException({
+                code:Exception.QUERY_FAIL,
+                message:'Fabric Query Fail',
+            },HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

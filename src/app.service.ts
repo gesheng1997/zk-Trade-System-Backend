@@ -65,6 +65,7 @@ export class AppService {
     // console.log(passwordHash);
     // testX509();
     const res = {
+      privateKey,
       publicKey,
       msg,
       signature,
@@ -73,6 +74,38 @@ export class AppService {
     }
 
     return res;
+  }
+
+  async getSignTrans(signInfo:any): Promise<any>{
+    const ed = await import('@noble/ed25519');
+    const { from, to, comment, amount, privateK, } = signInfo;
+
+    const timestamp = new Date();
+
+    const digestRaw = {
+      from,
+      to,
+      amount,
+      timestamp,
+      comment,
+    }
+
+    const digestStr = Buffer.from(JSON.stringify(digestRaw));
+
+    const digestUint8 = sha256(digestStr);
+
+    const digest = Buffer.from(digestUint8).toString('hex');
+
+    console.log(digest,privateK);
+    const signatureA = await ed.signAsync(digest,privateK);
+    const signature = Buffer.from(signatureA).toString('hex');
+    console.log('signature:',signature);
+
+    return {
+      timestamp,
+      digest,
+      signature,
+    }
   }
 }
 

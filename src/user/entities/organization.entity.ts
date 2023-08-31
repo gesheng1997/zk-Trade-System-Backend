@@ -26,7 +26,7 @@ export class Organization{
 	orgname: string;
 
 	@Column({ type:'varchar', length:1160 })
-	pemCert:string;
+	pemCert: string;
 
 	//密码存储为明文的加盐哈希值----由于准备使用sha256 故只预留32byte大小
 	@Column({ type: 'varchar', length: 100 })

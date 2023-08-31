@@ -35,6 +35,10 @@ const BullQueueModule = BullModule.registerQueueAsync(
       return {
         name: 'transaction',
         redis:getTransQueueConfig(configService),
+        limiter:{
+          max:50,
+          duration:1000
+        }
       }
     },
     inject:[ConfigService],
