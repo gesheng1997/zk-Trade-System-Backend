@@ -13,6 +13,7 @@ import envConfig from "src/config/envConfig";
 import serverSignVouchers from "src/utils/serverSignVouchers";
 import { TransactionService } from "./transaction.service";
 import { User } from "src/user/entities/user.entity";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const snarkjs = require('snarkjs');
 import fs from 'fs';
 import path from 'path'

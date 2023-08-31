@@ -390,7 +390,7 @@ export class TransactionService {
 
 	//用于做压力测试的一次性发大量交易的接口，发的交易都是同样的，并且count表示交易个数
 	async createBatchNormalTrans(count:number,createTransactionDto: CreateTransactionDto):Promise<string>{
-		let i:number = 0;
+		let i = 0;
 		const veryStart:number = new Date().getTime();
 		const Timer = setInterval(() => {
 			this.createNormalTrans(createTransactionDto);
