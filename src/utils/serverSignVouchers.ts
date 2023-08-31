@@ -17,7 +17,7 @@ const serverSignVoucher = async (digest:string,privateKey:string):Promise<string
     ECDSASign.init(privateKey);//开始签名入参为pem格式的私钥
     ECDSASign.updateString(digest);
     const ECDSASig = ECDSASign.sign();
-    console.log('ECDSASig:',ECDSASig);
+    // console.log('ECDSASig:',ECDSASig);
 
     return ECDSASig
 }

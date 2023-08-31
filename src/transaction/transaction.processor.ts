@@ -34,7 +34,10 @@ export class TransactionProcessor{
         // const tasksToProcess = 4; // 设定要一次性处理的任务数量
         const currentQueueSize = await this.transactionQueue.getCompletedCount();
 
-        console.log(currentQueueSize);
+		let buryPoint1:Date;
+		let buryPoint2:Date;
+
+        // console.log(currentQueueSize);
 
         if (currentQueueSize >= batchCount.count) {
 
@@ -123,15 +126,15 @@ export class TransactionProcessor{
 				final_state: finalBalances,
 				transactions: batchTransactions,
             }
-			console.log(batchTrans);
+			// console.log(batchTrans);
 			//使用snarkjs对打包交易生成零知识证明
 			try{
 				const { proof, publicSignals } = await snarkjs.plonk.fullProve(batchTrans,
 					path.resolve("public","circuit","batchtransaction_js","batchtransaction.wasm"),
 					path.resolve("public","circuit","batchtransaction_final.zkey")
 				);
-				console.log('proof:',proof);
-				console.log('publicSignals:',publicSignals);
+				// console.log('proof:',proof);
+				// console.log('publicSignals:',publicSignals);
 
 				const vKey = JSON.parse(fs.readFileSync(path.resolve("public","circuit","verification_key.json")).toString('utf8'));
 
@@ -145,6 +148,7 @@ export class TransactionProcessor{
 					vKey,
 				}
 				//打包交易加入一级队列
+				buryPoint1 = new Date();
 				this.verifyQueue.add('verifyCome',zkTrans);
 			}catch(err){
 				console.log(err);
@@ -172,6 +176,11 @@ export class TransactionProcessor{
 			const successEventListener = (uuid) => {
 				//说明当前一级队列上完成的打包交易验证任务，确实是这个processor之前发出的
 				if(uuidValue === uuid){
+					buryPoint2 = new Date();
+
+					console.log('start:',buryPoint1);
+					console.log('end:',buryPoint2);
+					console.log('spanTime:',buryPoint2.getTime() - buryPoint1.getTime());
 					/*                 
 					调用service更新交易数据库中的条目，修改成功后再调用userService更新用户表
 					之后再调用凭证生成方法批量生成多笔交易的凭证

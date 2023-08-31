@@ -64,7 +64,7 @@ export class TransactionController {
 	@Get()
 	async findAll(@Request() req) {
 		//管理员可以查询系统中所有交易信息
-		if(req.user.type !== userType.ADMIN) throw new HttpException({
+		if(req.user.userType !== userType.ADMIN) throw new HttpException({
 			code:Exception.PERMISSION_DENIED,
 			message:'Only Admin Can Check Full Informations Of Transaction'
 		},HttpStatus.UNAUTHORIZED);
@@ -92,7 +92,7 @@ export class TransactionController {
 	@UseGuards(AuthGuard)
 	@Post('/batch/normal')
 	async createBatchNormalTrans(@Request() req, @Body() createTransactionsDto: CreateTransactionsDto){
-		if(req.user.type !== userType.ADMIN)
+		if(req.user.userType !== userType.ADMIN)
 			throw new HttpException({
 				code:Exception.WRONG_IDENTITY,
 				message:'Only Admin Can Launch Transactions In Batch'

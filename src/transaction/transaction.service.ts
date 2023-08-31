@@ -41,6 +41,7 @@ export class TransactionService {
 		});
 
 		//不能发起转账金额小于0的交易,还应该加上时间戳和现在时间相减小于3s判断，防重放
+		//还要加上交易信息部分sha256哈希必须和digest一样的判断！
 		if(amount < 0){
 			throw new HttpException({
 				code:Exception.INVALID_TRANSACTION,
@@ -57,8 +58,7 @@ export class TransactionService {
 		}
 
 		//验证签名
-		const publicKey = Buffer.from(decodeBase64(fromUser.publicKey)).toString('hex');
-		const isValid = await ed.verifyAsync(signature, digest, publicKey);
+		const isValid = await ed.verifyAsync(signature, digest, fromUser.publicKey);
 
 		if(isValid){
 			//将交易写入交易表
@@ -75,7 +75,7 @@ export class TransactionService {
 			});
 
 			//单笔交易加入队列
-			this.transactionQueue.add({
+			this.transactionQueue.add('transCome',{
 				transactionId:newTrans.id,
 				from,
 				to,
@@ -86,7 +86,6 @@ export class TransactionService {
 
 			//更新交易状态为排队中
 			this.transaction.update(newTrans.id,{state:TransactionState.QUEUEING});
-
 			return newTrans.id;
 		}else{
 			throw new HttpException({
@@ -193,8 +192,7 @@ export class TransactionService {
 			where:{id:from},
 		});
 
-		const publicKey = Buffer.from(decodeBase64(fromUser.publicKey)).toString('hex');
-		const isValid = await ed.verifyAsync(signature, digest, publicKey);
+		const isValid = await ed.verifyAsync(signature, digest, fromUser.publicKey);
 
 		if(isValid){
 			//将交易写入交易表
@@ -211,7 +209,7 @@ export class TransactionService {
 			});
 
 			//单笔交易加入队列
-			this.transactionQueue.add({
+			this.transactionQueue.add('transCome',{
 				transactionId:newTrans.id,
 				from,
 				to,
@@ -392,10 +390,17 @@ export class TransactionService {
 
 	//用于做压力测试的一次性发大量交易的接口，发的交易都是同样的，并且count表示交易个数
 	async createBatchNormalTrans(count:number,createTransactionDto: CreateTransactionDto):Promise<string>{
-		for(let i = 0;i < count;i++){
+		let i:number = 0;
+		const veryStart:number = new Date().getTime();
+		const Timer = setInterval(() => {
 			this.createNormalTrans(createTransactionDto);
-		}
-
-		return 'ok';
+			i++;
+			if(i >= count){
+				clearInterval(Timer);
+				console.log('veryStart:-----------------------------------------',veryStart);
+				return 'ok';
+			}
+		},100);
+		return 'wait';
 	}
 }
