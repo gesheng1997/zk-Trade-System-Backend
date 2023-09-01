@@ -130,7 +130,7 @@ export class TransactionProcessor{
 			// console.log(batchTrans);
 			//使用snarkjs对打包交易生成零知识证明
 			try{
-				const { proof, publicSignals } = await snarkjs.plonk.fullProve(batchTrans,
+				const { proof, publicSignals } = await snarkjs.groth16.fullProve(batchTrans,
 					path.resolve("public","circuit","batchtransaction_js","batchtransaction.wasm"),
 					path.resolve("public","circuit","batchtransaction_final.zkey")
 				);
