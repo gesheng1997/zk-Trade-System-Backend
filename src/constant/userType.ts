@@ -1,8 +1,8 @@
-enum userType {
+enum UserType {
     NORMAL = 0,
     ORGANIZATION,
     ADMIN,
     DELETED,
 }
 
-export default userType;
+export default UserType;

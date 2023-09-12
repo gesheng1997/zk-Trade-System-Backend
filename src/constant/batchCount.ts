@@ -1,8 +1,8 @@
-type approvedCount = 2 | 4 | 8 | 16 | 32;
+type approvedCount = 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256;
 
 const batchCount = {
     //批量交易笔数的默认值,最低4笔每批
-    _batchCount :8,
+    _batchCount :32,
 
     //通过get set操作批量交易笔数
     get count(){

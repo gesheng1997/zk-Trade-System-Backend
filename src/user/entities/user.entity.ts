@@ -4,9 +4,11 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Organization } from './organization.entity';
 
 /* 用户表schema */
 @Entity()

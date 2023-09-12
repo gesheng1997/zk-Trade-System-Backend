@@ -7,7 +7,7 @@ import jwtSecret from 'src/constant/jwtSecret';
         JwtModule.register({
             global:true,
             secret:jwtSecret,
-            signOptions:{ expiresIn:'7200s' },
+            signOptions:{ expiresIn:'14400s' },
         })
     ]
 })

@@ -5,10 +5,19 @@ import TransactionType from "src/constant/transactionType";
 
 export class TransactionDto{
     id:number;
+
     from:number;
     fromUsername:string;
+    fromUserPublicKey:string;
+    fromUserPhone:string;
+    fromUserEmail:string;
+
     to:number;
     toUsername:string;
+    toUserPublicKey:string;
+    toUserPhone:string;
+    toUserEmail:string;
+
     amount:number;
     comment:string;
     state:TransactionState;
