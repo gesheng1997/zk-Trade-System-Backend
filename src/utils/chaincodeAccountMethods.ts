@@ -1,7 +1,7 @@
 import { TextDecoder } from 'util';
 import envConfig from '../config/envConfig';
 import { Contract, ProposalOptions } from '@hyperledger/fabric-gateway';
-import userType from '../constant/userType';
+import UserType from '../constant/userType';
 import { getConnection, closeConnection } from './grpcConnection'
 import { STR_NONE, BALANCE_UNCHANGE, STILL_ALIVE } from '../constant/chaincodeConst';
 
@@ -21,24 +21,24 @@ export const initLedger = async (): Promise<void>  => {
 }
 
 //创建一个新普通账户
-export const createAccount = async (id: number, type:userType, publicKey:string): Promise<void> => {
+export const createAccount = async (id: number, type:UserType, publicKey:string): Promise<void> => {
     const { client, gateway, contract } = await getConnection();
 
     console.log('\n--> Submit Transaction: CreateAsset, creates new normal account with id, publicKey and type');
 
-    if(type === userType.NORMAL){
+    if(type === UserType.NORMAL){
         await contract.submit(
             'CreateAccount',
             {
-                'arguments':[`${id}`,publicKey,`${userType.NORMAL}`, ''],
+                'arguments':[`${id}`,publicKey,`${UserType.NORMAL}`, ''],
             }
         );
     }
-    if(type === userType.ADMIN){
+    if(type === UserType.ADMIN){
         await contract.submit(
             'CreateAccount',
             {
-                'arguments':[`${id}`,publicKey,`${userType.ADMIN}`, ''],
+                'arguments':[`${id}`,publicKey,`${UserType.ADMIN}`, ''],
             }
         );
     }
@@ -57,7 +57,7 @@ export const createOrgAccount = async (id: number, publicKey:string, pemCert:str
     await contract.submit(
         'CreateAccount',
         {
-            'arguments':[`${id}`,publicKey,`${userType.ORGANIZATION}`, pemCert],
+            'arguments':[`${id}`,publicKey,`${UserType.ORGANIZATION}`, pemCert],
         }
     );
 

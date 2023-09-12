@@ -16,9 +16,11 @@ import { TransactionService } from './transaction.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AuthGuard } from 'src/authGuard/auth.guard';
-import userType from 'src/constant/userType';
+import UserType from 'src/constant/userType';
 import Exception from 'src/constant/exceptionType';
 import { CreateTransactionsDto } from './dto/create-transactions.dto';
+import { TransactionDto } from './dto/transaction.dto';
+import TransactionDisplayState from 'src/constant/transactionDisplayState';
 
 @Controller('transaction')
 export class TransactionController {
@@ -64,18 +66,30 @@ export class TransactionController {
 	@Get()
 	async findAll(@Request() req) {
 		//管理员可以查询系统中所有交易信息
-		if(req.user.userType !== userType.ADMIN) throw new HttpException({
+		if(req.user.userType !== UserType.ADMIN) throw new HttpException({
 			code:Exception.PERMISSION_DENIED,
 			message:'Only Admin Can Check Full Informations Of Transaction'
 		},HttpStatus.UNAUTHORIZED);
 		return this.transactionService.findAll();
 	}
 
+	// @UseGuards(AuthGuard)
+	// @Get(':id/state/:state')
+	// async findAllMyTrans(@Request() req,@Param('id') id: string,@Param('state') state:string):Promise<Array<TransactionDto>> {
+	// 	//用户只能查询和自己有关的所有交易信息！
+	// 	if(req.user.userId !== +id) 
+	// 		throw new HttpException({
+	// 			code:Exception.WRONG_IDENTITY,
+	// 			message:'Can Only Get Your Own Transactions'
+	// 		},HttpStatus.UNAUTHORIZED)
+	// 	return this.transactionService.findAllMyTrans(+id,+state);
+	// }
+
 	@UseGuards(AuthGuard)
 	@Get(':id')
-	async findAllMyTrans(@Request() req,@Param('id') id: string) {
+	async findAllMyTrans(@Request() req,@Param('id') id: string):Promise<Array<TransactionDto>> {
 		//用户只能查询和自己有关的所有交易信息！
-		if(req.user.id !== +id) 
+		if(req.user.userId !== +id) 
 			throw new HttpException({
 				code:Exception.WRONG_IDENTITY,
 				message:'Can Only Get Your Own Transactions'
@@ -92,15 +106,16 @@ export class TransactionController {
 	@UseGuards(AuthGuard)
 	@Post('/batch/normal')
 	async createBatchNormalTrans(@Request() req, @Body() createTransactionsDto: CreateTransactionsDto){
-		if(req.user.userType !== userType.ADMIN)
+		if(req.user.userType !== UserType.ADMIN)
 			throw new HttpException({
 				code:Exception.WRONG_IDENTITY,
 				message:'Only Admin Can Launch Transactions In Batch'
 			},HttpStatus.UNAUTHORIZED)
 
+		const count = createTransactionsDto.count;
 		Reflect.deleteProperty(createTransactionsDto,'count');
 		const createTransactionDto:CreateTransactionDto = {...createTransactionsDto}
-		return this.transactionService.createBatchNormalTrans(createTransactionsDto.count,createTransactionDto);
+		return this.transactionService.createBatchNormalTrans(count,createTransactionDto);
 	}
 
 	//这个接口目前用不到，后面考虑前端先显示所有跟自己有关的交易摘要，想看哪个再点击展示详情才会用到这个

@@ -25,10 +25,12 @@ export class Transaction {
 
     //交易发起人的id
 	@Column({ type: 'int' })
+    @Index()
 	from: number;
 
     //交易接收者的id
     @Column({ type: 'int' })
+    @Index()
 	to: number;
 
     //转账金额

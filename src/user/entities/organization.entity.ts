@@ -35,4 +35,7 @@ export class Organization{
 	//公钥将会以base64字符串的形式存储在库中，之后通过tweetnacl-utils中的decodeBase64方法解码为Uint8Array
 	@Column({ type: 'varchar', length: 100 })
 	publicKey: string;
+
+	@Column({ type: 'enum', enum:{ Ture:1, False:0 } })
+	commercial: number;
 }

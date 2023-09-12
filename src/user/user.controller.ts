@@ -18,9 +18,10 @@ import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 import { CheckUserLoginDto } from './dto/check-user-login.dto';
 import { UserInfoDto } from './dto/user-info.dto';
 import { AuthGuard } from 'src/authGuard/auth.guard';
-import userType from 'src/constant/userType';
+import UserType from 'src/constant/userType';
 import { AccountDto } from './dto/account.dto';
 import Exception from 'src/constant/exceptionType';
+import { OrgnizationDto } from './dto/organization.dto';
 
 @Controller('user')
 export class UserController {
@@ -44,6 +45,35 @@ export class UserController {
 		return this.userService.createAdminUser(adminRegisterDto);
 	}
 
+	//查询某个类型的所有用户的信息---主要给管理员使用
+	@UseGuards(AuthGuard)
+	@Get('all')
+	async findAllUsers(@Request() req){
+		// if(req.user.type !== UserType.ADMIN) throw new UnauthorizedException();
+		return this.userService.findAllUsers();
+	}
+
+	//检查token
+	@UseGuards(AuthGuard)
+	@Get('checktoken')
+	async checkToken(){
+		// console.log('@');
+	}
+
+	//获取所有用户的信息
+	// @UserGuards(AuthGuard)
+	@Get()
+	async getAllAccounts(@Request() req):Promise<Array<AccountDto>>{
+		// if(!req.user)
+		return this.userService.getAllAccounts();
+	}
+
+	@UseGuards(AuthGuard)
+	@Get('commercial')
+	async findAllCommercial():Promise<Array<OrgnizationDto>>{
+		return this.userService.findAllCommercial();
+	}
+
 	//查询单个用户信息
 	@UseGuards(AuthGuard)
 	@Get(':id')
@@ -64,6 +94,7 @@ export class UserController {
 				code:Exception.INVALID_UPDATE,
 				message:'Cannot Update Other Users\' Personal Information'
 			},HttpStatus.BAD_REQUEST);
+		console.log('#');
 		return this.userService.updateUserInfo(+id, updateUserInfoDto);
 	}
 
@@ -82,21 +113,5 @@ export class UserController {
 	@Post('login')
 	async checkUser(@Body() checkUserLoginDto:CheckUserLoginDto):Promise<UserInfoDto>{
 		return this.userService.checkUser(checkUserLoginDto);
-	}
-
-	//查询某个类型的所有用户的信息---主要给管理员使用
-	@UseGuards(AuthGuard)
-	@Get('type/:type')
-	async findAllTypeUsers(@Param() type:number,@Request() req){
-		if(req.user.type !== userType.ADMIN) throw new UnauthorizedException();
-		return this.userService.findAllTypeUsers(type);
-	}
-
-	//获取所有用户的信息
-	// @UserGuards(AuthGuard)
-	@Get('')
-	async getAllAccounts(@Request() req):Promise<Array<AccountDto>>{
-		// if(!req.user)
-		return this.userService.getAllAccounts();
 	}
 }

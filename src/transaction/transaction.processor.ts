@@ -130,16 +130,23 @@ export class TransactionProcessor{
 			// console.log(batchTrans);
 			//使用snarkjs对打包交易生成零知识证明
 			try{
-				const { proof, publicSignals } = await snarkjs.plonk.fullProve(batchTrans,
+				const buryPoint3 = new Date();
+				const { proof, publicSignals } = await snarkjs.groth16.fullProve(batchTrans,
 					path.resolve("public","circuit","batchtransaction_js","batchtransaction.wasm"),
 					path.resolve("public","circuit","batchtransaction_final.zkey")
 				);
 				// console.log('proof:',proof);
 				// console.log('publicSignals:',publicSignals);
 
+				const buryPoint4 = new Date();
+
 				const vKey = JSON.parse(fs.readFileSync(path.resolve("public","circuit","verification_key.json")).toString('utf8'));
 
-				console.log('@');
+				const buryPoint5 = new Date();
+
+				console.log('生成证明和公共信号：',buryPoint4.getTime() - buryPoint3.getTime());
+				console.log('生成vkey：',buryPoint5.getTime() - buryPoint4.getTime());
+
 				const zkTrans = {
 					uuid:uuidValue,
 					ids,
@@ -179,8 +186,8 @@ export class TransactionProcessor{
 				if(uuidValue === uuid){
 					buryPoint2 = new Date();
 
-					console.log('start:',buryPoint1);
-					console.log('end:',buryPoint2);
+					console.log('start:',buryPoint1.getTime());
+					console.log('end:',buryPoint2.getTime());
 					console.log('spanTime:',buryPoint2.getTime() - buryPoint1.getTime());
 					/*                 
 					调用service更新交易数据库中的条目，修改成功后再调用userService更新用户表
@@ -189,7 +196,8 @@ export class TransactionProcessor{
 
 					关于fabric上打包交易和链下交易的对应性，考虑在交易表中额外加上一个字段，标识每笔交易属于fabric上哪个id的打包交易
 					*/
-					
+				
+
 					try {
 						this.entityManager.transaction(async transacionalEntityManager => {
 							for(const trans of transactions){
@@ -200,9 +208,11 @@ export class TransactionProcessor{
 						});
 						//成功验证之后移除该对一级队列的监听器
 						this.verifyQueue.removeListener('verifySuccessEvent',successEventListener);
+						this.verifyQueue.removeListener('verifyFailEvent',failEventListener);
 					} catch (error) {
 						//数据库更新失败之后也要移除该对一级队列的监听器
 						this.verifyQueue.removeListener('verifySuccessEvent',successEventListener);
+						this.verifyQueue.removeListener('verifyFailEvent',failEventListener);
 
 						throw new HttpException({
 							code:Exception.UPDATE_TRANSACTION_STATE_FAIL,
@@ -216,8 +226,12 @@ export class TransactionProcessor{
 					}));
 
 					serverSignVouchers(transDigests).then(signatures => {
+						const buryPoint6 = new Date();
 						//最终调用更新涉及用户余额方法，方法中会更余额并最终将交易状态置为SETTLED
-						this.transactionService.updateTransBalances(ids,finalBalances,signatures);
+						this.transactionService.updateTransBalances(ids,finalBalances,signatures).then(() => {
+							const buryPoint7 = new Date();
+							console.log('签名时间',buryPoint7.getTime() - buryPoint6.getTime());
+						});
 					});
 				}
 			}
@@ -234,9 +248,11 @@ export class TransactionProcessor{
 						});
 						//成功验证之后移除该对一级队列的监听器
 						this.verifyQueue.removeListener('verifySuccessEvent',successEventListener);
+						this.verifyQueue.removeListener('verifyFailEvent',failEventListener);
 					} catch (error) {
 						//数据库更新失败之后也要移除该对一级队列的监听器
 						this.verifyQueue.removeListener('verifySuccessEvent',successEventListener);
+						this.verifyQueue.removeListener('verifyFailEvent',failEventListener);
 
 						throw new HttpException({
 							code:Exception.UPDATE_TRANSACTION_STATE_FAIL,

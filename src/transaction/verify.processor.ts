@@ -17,17 +17,21 @@ export class VerifyProcessor{
     async handleVerification(job:Job){
 		const { data } = job;
 
+		const uuid = data.uuid;
+
+		Reflect.deleteProperty(data,'uuid');
+
 		const zkProofStr = JSON.stringify(data);
 		try {
 			const batchTransInfo = await verifyBatchTransaction(zkProofStr);
 
 			//验证成功则发布验证成功的事件
-			if(batchTransInfo) this.verifyQueue.emit('verifySuccessEvent',data.uuid, batchTransInfo);//告知指定uuid的二级队列订阅者验证完成
+			if(batchTransInfo) this.verifyQueue.emit('verifySuccessEvent',uuid, batchTransInfo);//告知指定uuid的二级队列订阅者验证完成
 			else throw new Error(batchTransInfo)
 		} catch (error) {
 			console.log(error);
 			
-			this.verifyQueue.emit('varifyFailEvent',data.uuid);
+			this.verifyQueue.emit('verifyFailEvent',data.uuid);
 		}
 		//否则发布验证失败事件
     }

@@ -13,9 +13,15 @@ async function bootstrap() {
 		cert: fs.readFileSync('src/https/https-cert.pem'),
 	}
 
-	const app = await NestFactory.create<NestExpressApplication>(AppModule,{
-		httpsOptions,
-	});
+	const app = await NestFactory.create<NestExpressApplication>(AppModule,
+		// {
+		/// 	httpsOptions,
+		// }
+		{
+			// httpsOptions,
+			cors:true,
+		}
+	);
 	app.useGlobalInterceptors(new Response());
 	app.useGlobalFilters(new HttpFilter());
 	app.useStaticAssets(path.resolve('public'),{

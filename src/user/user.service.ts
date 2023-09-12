@@ -22,11 +22,13 @@ import { UserInfoDto } from './dto/user-info.dto';
 import { JwtService } from '@nestjs/jwt';
 import { sha256 } from '@hyperledger/fabric-gateway/dist/hash/hashes';
 import { AccountDto } from './dto/account.dto';
-import userType from 'src/constant/userType';
+import UserType from 'src/constant/userType';
 import { Organization } from './entities/organization.entity';
 import encodeUTF8 from 'src/utils/encodeUTF8';
 import { v4 as uuid } from 'uuid';
 import Exception from 'src/constant/exceptionType';
+import { OrgnizationDto } from './dto/organization.dto';
+import { UserSearchDto } from './dto/user-search.dto';
 
 const TOKEN = 'ZHUZHUXIHUANNIWENJUN';
 
@@ -52,7 +54,7 @@ export class UserService {
         });
         if (targetUser)
             //指定用户名的用户已存在且不是注销状态情况下报错
-            if(targetUser.type !== userType.DELETED){ 
+            if(targetUser.type !== UserType.DELETED){ 
                 throw new HttpException({
                     code:Exception.ALREADY_EXIST,
                     message:'User Already Exist',
@@ -83,7 +85,7 @@ export class UserService {
 
             //访问gateway代码，创建链上账号
             try {
-                createAccount(newid, userType.NORMAL, publicKey);
+                createAccount(newid, UserType.NORMAL, publicKey);
             } catch(error) {
                 console.log(error);
                 throw new HttpException({
@@ -101,7 +103,7 @@ export class UserService {
                 password: passwordHash,
                 publicKey,
                 balance: 0,
-                type: userType.NORMAL,
+                type: UserType.NORMAL,
                 alive: 1,
             });
             console.log(resultEntity);
@@ -125,7 +127,7 @@ export class UserService {
         });
         if (targetUser)
             //指定用户名的用户已存在且不是注销状态情况下报错
-            if(targetUser.type !== userType.DELETED){ 
+            if(targetUser.type !== UserType.DELETED){ 
                 throw new HttpException({
                     code:Exception.ALREADY_EXIST,
                     message:'User Already Exist',
@@ -187,7 +189,7 @@ export class UserService {
                 password: passwordHash,
                 publicKey,
                 balance: 0,
-                type: userType.ORGANIZATION,
+                type: UserType.ORGANIZATION,
                 alive: 1,
             });
 
@@ -222,7 +224,7 @@ export class UserService {
         });
         if (targetUser)
             //指定用户名的用户已存在且不是注销状态情况下报错
-            if(targetUser.type !== userType.DELETED){ 
+            if(targetUser.type !== UserType.DELETED){ 
                 throw new HttpException({
                     code:Exception.ALREADY_EXIST,
                     message:'User Already Exist',
@@ -257,7 +259,7 @@ export class UserService {
 
             //访问gateway代码，创建链上账号 
             try {
-                await createAccount(newid, userType.ADMIN, publicKey);
+                await createAccount(newid, UserType.ADMIN, publicKey);
             } catch(error) {
                 console.log('@',error);
                 throw new HttpException({
@@ -276,7 +278,7 @@ export class UserService {
                 password: passwordHash,
                 publicKey,
                 balance: 0,
-                type: userType.ADMIN,
+                type: UserType.ADMIN,
                 alive: 1,
             });
             console.log(resultEntity);
@@ -314,8 +316,12 @@ export class UserService {
             },HttpStatus.BAD_REQUEST);
         }
 
-        //未查询到用户或者用户已经注销，返回null
-        if(!findRes || findRes.type === userType.DELETED) return null;
+        //未查询到用户或者用户已经注销，报错
+        if(!findRes || findRes.type === UserType.DELETED)
+            throw new HttpException({
+                code:Exception.NOT_EXIST_USER,
+                message:'User Not Exist.'
+            },HttpStatus.BAD_REQUEST);
         
         //验证密码
         const passwordSalt = decodeUTF8(password + SALT);
@@ -335,19 +341,27 @@ export class UserService {
             const access_token = await this.jwtService.signAsync(payload);
 
             //包装返回对象：
+            Reflect.deleteProperty(findRes,'password');
             const userInfo:UserInfoDto = {
                 ...findRes,
                 access_token,
             }
+            console.log(userInfo);
             return userInfo;
         }
     }
 
-    async findAllTypeUsers(type: number):Promise<Array<User>> {
-        const typeUsers = this.user.find({
-            where:{type},
-        });
-        return typeUsers;
+    async findAllUsers():Promise<Array<UserSearchDto>> {
+        let typeUsers:Array<UserSearchDto>
+        const users = await this.user.find({
+            select:['id','username','publicKey','phone','email','avatar',"type"],
+            where:[
+                // {type:UserType.NORMAL},
+                // {type:UserType.ADMIN}
+            ]
+        })
+
+        return users;
     }
 
     async getUserInfo(id: number):Promise<User> {
@@ -358,13 +372,15 @@ export class UserService {
     }
 
     //更新账户相关的信息，不涉及账户余额以及公私钥的更新
-    async updateUserInfo(id:number,updateUserInfoDto:UpdateUserInfoDto):Promise<boolean>{
+    async updateUserInfo(id:number,updateUserInfoDto:UpdateUserInfoDto):Promise<UserInfoDto>{
         //这里对于更新unique字段没有报错提示！加上
         const success = await this.user.update(id,updateUserInfoDto);
         console.log(success);
 
-        if(success) return true;
-        else return false; 
+        const updateData = await this.user.findOne({
+            where:{id}
+        });
+        return updateData;
     }
 
     /*   
@@ -422,7 +438,7 @@ export class UserService {
             password:'',
             publicKey:'',
             balance:0,
-            type:userType.DELETED,
+            type:UserType.DELETED,
             avatar:'',
             alive:0,
         }
@@ -445,5 +461,13 @@ export class UserService {
                 message:'Fabric Query Fail',
             },HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    async findAllCommercial():Promise<Array<OrgnizationDto>>{
+        const Orgs:Array<OrgnizationDto> = await this.organization.find({
+            where:{commercial:1}
+        });
+
+        return Orgs;
     }
 }

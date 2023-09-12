@@ -18,6 +18,7 @@ import { VoucherDto } from './dto/voucher.dto';
 import getOrgPem from 'src/utils/getOrgPem';
 import envConfig from 'src/config/envConfig';
 import encodeUTF8 from 'src/utils/encodeUTF8';
+import TransactionDisplayState from 'src/constant/transactionDisplayState';
 
 @Injectable()
 export class TransactionService {
@@ -135,7 +136,7 @@ export class TransactionService {
 				to,
 				amount,
 				state:TransactionState.LAUNCHED,
-				type:TransactionType.NORMAL,
+				type:TransactionType.DEPOSIT,
 				fromSignature:signature,
 				digest,
 				initTime:timestamp,
@@ -201,7 +202,7 @@ export class TransactionService {
 				to,
 				amount,
 				state:TransactionState.LAUNCHED,
-				type:TransactionType.NORMAL,
+				type:TransactionType.WITHDRAW,
 				fromSignature:signature,
 				digest,
 				initTime:timestamp,
@@ -235,24 +236,46 @@ export class TransactionService {
 			order:{gmt_create:'DESC'}
 		});
 
-		const results = transactions.map((transaction) => {
+		const results:TransactionDto[] = [];
+		for(let transaction of transactions){
 			const { id, from, to, amount, comment, type, state, initTime, gmt_modified } = transaction;
 			let fromUsername:string;
+			let fromUserPublicKey:string;
+			let fromUserPhone:string;
+			let fromUserEmail:string;
 			let toUsername:string;
+			let toUserPublicKey:string;
+			let toUserPhone:string;
+			let toUserEmail:string;
 
-			this.user.findBy({id:In([from,to])}).then(users => {
-				for(const user of users){
-					if(user.id === from) fromUsername = user.username;
-					else toUsername = user.username;
-				}
-			})
-
+			const users = await this.user.findBy({id:In([from,to])});
+			for(const user of users){
+				if(user.id === from){
+					fromUsername = user.username;
+					fromUserPublicKey = user.publicKey;
+					fromUserPhone = user.phone;
+					fromUserEmail = user.email;
+				}else{
+					toUsername = user.username;
+					toUserPublicKey = user.publicKey;
+					toUserPhone = user.phone;
+					toUserEmail = user.email;
+				} 
+			}
 			const result:TransactionDto = {
 				id,
 				from,
 				fromUsername,
+				fromUserPublicKey,
+				fromUserPhone,
+				fromUserEmail,
+
 				to,
 				toUsername,
+				toUserPublicKey,
+				toUserPhone,
+				toUserEmail,
+
 				amount,
 				comment,
 				state,
@@ -261,38 +284,120 @@ export class TransactionService {
 				gmt_modified,
 			}
 
-			return result;
-		});
+			results.push(result);
+		}
+
 		return results;
 	}
 
 	async findAllMyTrans(id:number):Promise<Array<TransactionDto>> {
-		const transactions = await
-			this.transaction
-				.createQueryBuilder()
-				.from(Transaction,'transaction')
-				.where('transaction.from = :id',{id})
-				.orWhere('transaction.to = :id',{id})
-				.orderBy('gmt_create','DESC')
-				.getMany();
+		// let transactions = [];
 
-		const results = transactions.map((transaction) => {
+		// switch(state){
+		// 	case TransactionDisplayState.ACTIVE:
+		// 		transactions = await
+		// 		this.transaction
+		// 			.createQueryBuilder('transaction')
+		// 			// .from(Transaction,'transaction')
+		// 			.where('(transaction.from = :id OR transaction.to = :id) AND transaction.state IN (:...states)',{
+		// 				id,
+		// 				states:[
+		// 					TransactionState.LAUNCHED + '',
+		// 					TransactionState.QUEUEING + '',
+		// 					TransactionState.VERIFIED + '',
+		// 					TransactionState.VERIFYING + '',
+		// 				]
+		// 			})
+		// 			// .orWhere('',{id})
+		// 			// .andWhere('transaction.state IN (:...states)',{
+		// 			// 	states:[
+		// 			// 		TransactionState.LAUNCHED,
+		// 			// 		TransactionState.QUEUEING,
+		// 			// 		TransactionState.VERIFIED,
+		// 			// 		TransactionState.VERIFYING,
+		// 			// 	]
+		// 			// })
+		// 			.orderBy('initTIme','DESC')
+		// 			.getMany();
+		// 		break;
+		// 	case TransactionDisplayState.SUCCESS:
+		// 		transactions = await
+		// 		this.transaction
+		// 			.createQueryBuilder('transaction')
+		// 			// .from(Transaction,'transaction')
+		// 			.where('(transaction.from = :id OR transaction.to = :id) AND transaction.state = :state',{
+		// 				id,
+		// 				state:TransactionState.SETTLED + '',
+		// 			})
+		// 			// .orWhere('transaction.to = :id',{id})
+		// 			// .andWhere('transaction.state = :state',{state:TransactionState.SETTLED + ''})
+		// 			.orderBy('initTime',"DESC")
+		// 			.limit(200)//大部分都是成功的！因此限制只取其中前200条，对于之后的用户请求再给
+		// 			.getMany();
+		// 		break;
+		// 	case TransactionDisplayState.FAIL:
+		// 		transactions = await
+		// 		this.transaction
+		// 			.createQueryBuilder('transaction')
+		// 			// .from(Transaction,'transaction')
+		// 			.where('(transaction.from = :id OR transaction.to = :id) AND transaction.state = :state',{
+		// 				id,
+		// 				state:TransactionState.FAILED + '',
+		// 			})
+		// 			// .orWhere('transaction.to = :id',{id})
+		// 			// .andWhere('transaction.state = :state',{state:TransactionState.FAILED})
+		// 			.orderBy('initTime','DESC')
+		// 			.getMany();
+		// 		break;
+		// 	default:break;
+		// }
+
+		const transactions = await this.transaction
+					.createQueryBuilder('transaction')
+					.where('transaction.from = :id OR transaction.to = :id',{ id })
+					.orderBy('initTime','DESC')
+					.getMany();
+
+		const results:TransactionDto[] = [];
+		for(let transaction of transactions){
 			const { id, from, to, amount, comment, type, state, initTime, gmt_modified } = transaction;
 			let fromUsername:string;
+			let fromUserPublicKey:string;
+			let fromUserPhone:string;
+			let fromUserEmail:string;
 			let toUsername:string;
+			let toUserPublicKey:string;
+			let toUserPhone:string;
+			let toUserEmail:string;
 
-			this.user.findBy({id:In([from,to])}).then(users => {
-				for(const user of users){
-					if(user.id === from) fromUsername = user.username;
-					else toUsername = user.username;
-				}
-			})
+			const users = await this.user.findBy({id:In([from,to])});
+			for(const user of users){
+				if(user.id === from){
+					fromUsername = user.username;
+					fromUserPublicKey = user.publicKey;
+					fromUserPhone = user.phone;
+					fromUserEmail = user.email;
+				}else{
+					toUsername = user.username;
+					toUserPublicKey = user.publicKey;
+					toUserPhone = user.phone;
+					toUserEmail = user.email;
+				} 
+			}
 			const result:TransactionDto = {
 				id,
 				from,
 				fromUsername,
+				fromUserPublicKey,
+				fromUserPhone,
+				fromUserEmail,
+
 				to,
 				toUsername,
+				toUserPublicKey,
+				toUserPhone,
+				toUserEmail,
+
 				amount,
 				comment,
 				state,
@@ -301,8 +406,9 @@ export class TransactionService {
 				gmt_modified,
 			}
 
-			return result;
-		});
+			results.push(result);
+		}
+
 		return results;
 	}
 	
@@ -394,13 +500,15 @@ export class TransactionService {
 		const veryStart:number = new Date().getTime();
 		const Timer = setInterval(() => {
 			this.createNormalTrans(createTransactionDto);
+			// clearInterval(Timer);
 			i++;
 			if(i >= count){
 				clearInterval(Timer);
 				console.log('veryStart:-----------------------------------------',veryStart);
 				return 'ok';
 			}
-		},100);
+		},50);
+		
 		return 'wait';
 	}
 }
