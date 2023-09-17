@@ -31,7 +31,7 @@ export class TransactionService {
 	private readonly userService: UserService,
   ){}
 
-  	//目前退款和一般交易都调用这个service方法！对于退款其实还应该有一些复杂判断，后面再完善
+  	//普通交易
   	async createNormalTrans(createTransactionDto: CreateTransactionDto): Promise<number> {
 		const ed = await import('@noble/ed25519');		
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
@@ -41,9 +41,9 @@ export class TransactionService {
 			where:{id:from},
 		});
 
-		//不能发起转账金额小于0的交易,还应该加上时间戳和现在时间相减小于3s判断，防重放
+		//不能发起转账金额小于0的交易,还应该加上时间戳和现在时间相减小于5s判断，防重放
 		//还要加上交易信息部分sha256哈希必须和digest一样的判断！
-		if(amount < 0){
+		if(amount < 0 || timestamp.getTime() - new Date().getTime() >= 5000){
 			throw new HttpException({
 				code:Exception.INVALID_TRANSACTION,
 				message:'Invalid Transaction'
@@ -71,7 +71,7 @@ export class TransactionService {
 				type:TransactionType.NORMAL,
 				fromSignature:signature,
 				digest,
-				initTime:timestamp,
+				initTime:new Date(timestamp).toISOString().replace("T"," ").slice(0),
 				comment,
 			});
 
@@ -102,10 +102,11 @@ export class TransactionService {
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
 
 		//timestamp检测,对于存钱交易amount必须<0
-		if(amount >= 0) throw new HttpException({
-			code:Exception.INVALID_TRANSACTION,
-			message:'Amount Of Deposit Transaction Cannot Be Great Or Equal to 0'
-		},HttpStatus.BAD_REQUEST);
+		if(amount >= 0 || new Date(timestamp).getTime() - new Date().getTime() >= 5000) 
+			throw new HttpException({
+				code:Exception.INVALID_TRANSACTION,
+				message:'Amount Of Deposit Transaction Cannot Be Great Or Equal to 0'
+			},HttpStatus.BAD_REQUEST);
 
 		//查询金融组织详细信息
 		const orgInfo = await this.organization.findOne({
@@ -169,10 +170,11 @@ export class TransactionService {
 		const { from, to, amount, signature, comment, digest, timestamp } = createTransactionDto;
 
 		//timestamp检测,amount必须>0
-		if(amount <= 0) throw new HttpException({
-			code:Exception.INVALID_TRANSACTION,
-			message:'Amount Of Deposit Transaction Cannot Be Less Or Equal to 0'
-		},HttpStatus.BAD_REQUEST);
+		if(amount <= 0 || new Date(timestamp).getTime() - new Date().getTime() >= 5000) 
+			throw new HttpException({
+				code:Exception.INVALID_TRANSACTION,
+				message:'Amount Of Deposit Transaction Cannot Be Less Or Equal to 0'
+			},HttpStatus.BAD_REQUEST);
 
 		//这里需要调用金融组织api将提现金额充入其中
 

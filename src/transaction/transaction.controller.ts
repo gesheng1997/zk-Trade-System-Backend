@@ -30,6 +30,7 @@ export class TransactionController {
 	@Post('/normal')
 	async createNormalTrans(@Body() createTransactionDto: CreateTransactionDto,@Request() req) {
 		if(createTransactionDto.from !== req.user.userId){
+			// console.log(createTransactionDto,req.user.userId);
 			throw new HttpException({
 				code:Exception.WRONG_IDENTITY,
 				message:'Id Uncompatible',

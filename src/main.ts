@@ -24,9 +24,7 @@ async function bootstrap() {
 	);
 	app.useGlobalInterceptors(new Response());
 	app.useGlobalFilters(new HttpFilter());
-	app.useStaticAssets(path.resolve('public'),{
-		prefix:'/public'
-	});
+	app.useStaticAssets(path.resolve('public'));
 	await app.listen(8080);
 }
 bootstrap();

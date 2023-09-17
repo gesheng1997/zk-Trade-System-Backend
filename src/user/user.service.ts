@@ -104,6 +104,7 @@ export class UserService {
                 publicKey,
                 balance: 0,
                 type: UserType.NORMAL,
+                avatar:'http://127.0.0.1:8080/image/default.jpg',
                 alive: 1,
             });
             console.log(resultEntity);
@@ -190,6 +191,7 @@ export class UserService {
                 publicKey,
                 balance: 0,
                 type: UserType.ORGANIZATION,
+                avatar:'http://127.0.0.1:8080/image/default.jpg',
                 alive: 1,
             });
 
@@ -279,6 +281,7 @@ export class UserService {
                 publicKey,
                 balance: 0,
                 type: UserType.ADMIN,
+                avatar:'http://127.0.0.1:8080/image/default1.png',
                 alive: 1,
             });
             console.log(resultEntity);
@@ -373,8 +376,17 @@ export class UserService {
 
     //更新账户相关的信息，不涉及账户余额以及公私钥的更新
     async updateUserInfo(id:number,updateUserInfoDto:UpdateUserInfoDto):Promise<UserInfoDto>{
+        let updateSQLData:any = {
+            ...updateUserInfoDto
+        }
+        //如果要更新birthday字段，由于javascript Date类型的格式和Mysql Date类型格式不同，
+        //如果直接尝试写入会报错！因此需要进行转换
+        if(updateUserInfoDto.birthday){
+            // console.log('111111',updateUserInfoDto.birthday);
+            updateSQLData.birthday = new Date(updateUserInfoDto.birthday).toISOString().replace("T"," ").slice(0,19);
+        }
         //这里对于更新unique字段没有报错提示！加上
-        const success = await this.user.update(id,updateUserInfoDto);
+        const success = await this.user.update(id,updateSQLData);
         console.log(success);
 
         const updateData = await this.user.findOne({
